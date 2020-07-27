@@ -15,7 +15,7 @@ public:
 		std::wcout << L"\t\tlaunch kewl" << std::endl;
 		std::wcout << L'\t' << arg[0] << L" --func" << std::endl;
 		std::wcout << L"\t\tout-of-da-box function, read \"FUNCZ\" below" << std::endl;
-		std::wcout << L'\t' << arg[0] << L" cmd (or " << arg[0] << L" /cmd)" << std::endl;
+		std::wcout << L'\t' << arg[0] << L" cmd" << std::endl;
 		std::wcout << L"\t\tstart kewl and execute da cmd, read \"CMDZ\" below" << std::endl;
 		std::wcout << L"FUNCZ:" << std::endl;
 		std::vector<std::wstring> tmp;

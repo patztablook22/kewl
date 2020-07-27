@@ -4,7 +4,7 @@
  * "lol imma waste my time" ~ patz, d6022
  */
 
-#define VERSION 88	// editing diz may cause unexpected behaviour
+#define VERSION 89	// editing diz may cause unexpected behaviour
 
 // needed libz:
 // #include "libz/ur_package_manager.hpp"
@@ -29,9 +29,6 @@ int main(int argc, const char *argv[])
 			tmp = argv[0];
 			core::perform << std::wstring(tmp.begin(), tmp.end()) + L' ' + arg;
 			arg.clear();
-			break;
-		case L'/':
-			arg.erase(0, 1);
 			break;
 		}
 	}

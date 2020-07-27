@@ -149,13 +149,15 @@ void serv::handler(std::string hostname, std::string port, std::wstring usrz)
 				core::io.send_passwd();
 				*this >> buf1;
 				
-				if (buf1[0] == 'p') {
-					core::io << core::io::msg(L"serv", L"passwd incorrect");
-					continue;
-				} else if (buf1[0] == 'a') {
-					core::io << core::io::msg(L"serv", L"ERR: max of attemptz reached");
-					disconn();
+				if (buf1[0] == 'p' || buf1[0] == 'a') {
+					core::io << core::io::msg(L"serv", L"WARN: passwd incorrect");
+					if (buf1[0] == 'a') {
+						core::io << core::io::msg(L"serv", L"ERR: max of attemptz reached");
+						disconn();
 					return;
+					} else {
+						continue;
+					}
 				}
 				break;	
 			}
@@ -310,66 +312,54 @@ bool serv::status::gactive()
 void serv::status::draw(int max_x, int max_y)
 {
 	std::wstring tmp;
-	attron(COLOR_PAIR(20));
+	core::io.ui.on(L"attr_frame_base");
 	mvprintw(max_y - 2, 0, "%*s", max_x, "");
-	attroff(COLOR_PAIR(20));
+	core::io.ui.off(L"attr_frame_base");
 	tmp = gactive() ? nick : L"---";
 	max_x -= 11 + tmp.size();
 	if (max_x < 0)
 		return;
 	move(max_y - 2, 1);
-	attron(COLOR_PAIR(21));
-	attron(A_BOLD);
+	core::io.ui.on(L"attr_frame_hl");
 	printw("[ ");
-	attroff(A_BOLD);
-	attroff(COLOR_PAIR(21));
-	attron(COLOR_PAIR(20));
+	core::io.ui.off(L"attr_frame_hl");
+	core::io.ui.on(L"attr_frame_base");
 	addwstr(tmp.c_str());
-	attroff(COLOR_PAIR(20));
-	attron(COLOR_PAIR(21));
-	attron(A_BOLD);
+	core::io.ui.off(L"attr_frame_base");
+	core::io.ui.on(L"attr_frame_hl");
 	printw(" ]");
 	tmp = gactive() ? name : L"---";
 	max_x -= 5 + tmp.size();
 	if (max_x < 0) {
-		attroff(A_BOLD);
-		attroff(COLOR_PAIR(21));
+		core::io.ui.off(L"attr_frame_hl");
 		return;
 	}
 	printw(" [ ");
-	attroff(A_BOLD);
-	attroff(COLOR_PAIR(21));
-	attron(COLOR_PAIR(20));
+	core::io.ui.off(L"attr_frame_hl");
+	core::io.ui.on(L"attr_frame_base");
 	addwstr(tmp.c_str());
-	attroff(COLOR_PAIR(20));
-	attron(COLOR_PAIR(21));
-	attron(A_BOLD);
+	core::io.ui.off(L"attr_frame_base");
+	core::io.ui.on(L"attr_frame_hl");
 	max_x -= 4 + (gactive() ? std::to_wstring(connno()).size() + std::to_wstring(clientz).size() : 2);
 	if (max_x < 0) {
 		printw(" ]");
-		attroff(A_BOLD);
-		attroff(COLOR_PAIR(20));
+		core::io.ui.off(L"attr_frame_hl");
 		return;
 	}
 	printw(" | ");
-	attroff(A_BOLD);
-	attroff(COLOR_PAIR(21));
-	attron(COLOR_PAIR(20));
+	core::io.ui.off(L"attr_frame_hl");
+	core::io.ui.on(L"attr_frame_base");
 	gactive() ? printw("%d", connno()) : printw("?");
-	attroff(COLOR_PAIR(20));
-	attron(COLOR_PAIR(21));
-	attron(A_BOLD);
+	core::io.ui.off(L"attr_frame_base");
+	core::io.ui.on(L"attr_frame_hl");
 	printw("/");
-	attroff(A_BOLD);
-	attroff(COLOR_PAIR(21));
-	attron(COLOR_PAIR(20));
+	core::io.ui.off(L"attr_frame_hl");
+	core::io.ui.on(L"attr_frame_base");
 	gactive() ? printw("%d", clientz) : printw("?");
-	attroff(COLOR_PAIR(20));
-	attron(COLOR_PAIR(21));
-	attron(A_BOLD);
+	core::io.ui.off(L"attr_frame_base");
+	core::io.ui.on(L"attr_frame_hl");
 	printw(" ]");
-	attroff(A_BOLD);
-	attroff(COLOR_PAIR(21));
+	core::io.ui.off(L"attr_frame_hl");
 }
 
 void serv::status::draw()

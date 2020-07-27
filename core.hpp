@@ -1,12 +1,63 @@
 namespace core {
 
 /*********************************************************************************************/
-
-
-/*********************************************************************************************/
 class io {
 public:
 	io(), ~io();
+
+	class ui {
+	public:
+		ui();
+		void init();
+		void on(std::wstring), off(std::wstring);
+		std::wstring gstr(std::wstring), grange(std::wstring);
+		void echo(std::wstring, unsigned int);
+		uint8_t set(std::wstring, std::vector<std::wstring>), set(std::wstring, std::wstring), set (std::wstring, wint_t);
+		uint8_t reset(std::wstring);
+		void reset();
+
+		void gcolorz(std::vector<std::wstring> &), gweightz(std::vector<std::wstring> &), gpropertiez(std::vector<std::wstring> &);
+
+		class property0 {
+		public:
+			property0(std::wstring, std::vector<std::wstring>);
+			void on(), off();
+			uint8_t svaluez(std::vector<std::wstring>);
+			void reset();
+		private:
+			unsigned int valuez[3], defaultz[3];
+			unsigned int id;
+		};
+
+		class property1 {
+		public:
+			property1(std::wstring, unsigned int, unsigned int, std::wstring);
+			std::wstring gstr(), grange();
+			uint8_t svalue(std::wstring);
+			void reset();
+		private:
+			unsigned int range[2];
+			std::wstring value, da_default;
+		};
+
+		class property2 {
+		public:
+			property2(std::wstring, wint_t);
+			void echo(unsigned int);
+			uint8_t svalue(wint_t);
+			void reset();
+		private:
+			wint_t value, da_default;
+		};
+
+	private:
+		bool existz(std::wstring);
+		std::map<std::wstring, unsigned int> colorz, weightz;
+		std::map<std::wstring, property0 *> propertiez0;
+		std::map<std::wstring, property1 *> propertiez1;
+		std::map<std::wstring, property2 *> propertiez2;
+	} ui;
+
 	void init();
 
 	bool iz_k(wint_t);
@@ -23,18 +74,20 @@ public:
 		void operator=(msg);
 
 		std::wstring gfrom(), gbody();
-		int gcol0(), gcol1(), gw0();
+		std::wstring gprop0(), gprop1();
+		int gw0();
 		bool gvalid();
 	private:
 		std::wstring from, body;
-		int col0, col1, w0;
+		std::wstring prop0, prop1;
+		int w0;
 		bool valid;
 	};
 	
 	void operator>>(std::wstring &);
 	void operator<<(msg);
 	void send_passwd();
-	void cls(), reset();
+	void cls(), da_erase(), reset();
 	void beep(bool), beep(), beep_sdelay(unsigned int), beep_son(bool), mkwin();
 	bool beep_gon();
 	int beep_gdelay();
@@ -47,7 +100,6 @@ private:
 
 	class i {
 	public:
-		i();
 		friend void io::operator>>(std::wstring &);
 		friend void io::send_passwd();
 		void draw();
@@ -55,7 +107,7 @@ private:
 		void _draw(int, int);
 	private:
 		bool use_normal, use_passwd;
-		std::wstring buf, prompt_normal, prompt_passwd;
+		std::wstring buf;
 		size_t pos, begin;
 
 		class acompl {
@@ -92,7 +144,7 @@ private:
 	public:
 		o();
 		friend void io::operator<<(msg);
-		friend void io::cls(), io::reset();
+		friend void io::cls(), io::da_erase(), io::reset();
 		int glen(), gpos0(), gpos1();
 		int glinez(int, int, int);
 		std::wstring gtitle();
@@ -110,36 +162,27 @@ private:
 
 /*********************************************************************************************/
 
-class cfg {
-public:
-private:
-
-} cfg;
-
-/*********************************************************************************************/
-
 class exec {
 public:
 	class cmd {
 	public:
-		virtual int usr(std::vector<std::wstring>) = 0;
-		virtual int serv(std::vector<std::wstring>);
+		virtual uint8_t usr(std::vector<std::wstring>) = 0;
+		virtual void acompl(std::vector<std::wstring>, std::vector<std::wstring> &);
+		virtual uint8_t serv(std::vector<std::wstring>);
 	};
 
 	class cmd_handler {
 	public:
-		cmd_handler(std::vector<std::vector<std::wstring>>, cmd *, std::wstring);
+		cmd_handler(std::vector<std::vector<std::wstring>>, cmd *);
 		void gman(std::vector<std::vector<std::wstring>> &);
-		wint_t gacompl(int);
+		void gacompl(std::vector<std::wstring>, std::vector<std::wstring> &);
 		cmd *gptr();
 	private:
 		std::vector<std::vector<std::wstring>> man;
 		cmd *ptr;
-		std::wstring acompl;
 	};
 
 	void add(std::wstring, std::vector<std::vector<std::wstring>>, cmd*);
-	void add(std::wstring, std::vector<std::vector<std::wstring>>, cmd *, std::wstring);
 	
 	class usr {
 	public:
@@ -153,7 +196,7 @@ public:
 
 	void gcmdz(std::vector<std::wstring> &);
 	void gman(std::wstring, std::vector<std::vector<std::wstring>> &);
-	wint_t gacompl(std::wstring, int);
+	void cmd_gacompl(std::wstring, std::vector<std::wstring> &);
 	bool iz_cmd(std::wstring);
 private:
 	std::vector<std::wstring> interpreter(std::wstring);
@@ -233,9 +276,7 @@ public:
 
 /*********************************************************************************************/
 
-
 #include "core/io.cpp"
-#include "core/cfg.cpp"
 #include "core/exec.cpp"
 #include "core/perform.cpp"
 #include "core/serv.cpp"

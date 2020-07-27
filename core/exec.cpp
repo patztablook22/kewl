@@ -1,4 +1,8 @@
-int exec::cmd::serv(std::vector<std::wstring>)
+void exec::cmd::acompl(std::vector<std::wstring> arg, std::vector<std::wstring> &trg)
+{
+}
+
+uint8_t exec::cmd::serv(std::vector<std::wstring>)
 {
 	return 0;
 }
@@ -17,11 +21,10 @@ std::vector<std::wstring> exec::interpreter(std::wstring input)
 	return result;
 }
 
-exec::cmd_handler::cmd_handler(std::vector<std::vector<std::wstring>> da_man, cmd *da_ptr, std::wstring da_acompl)
+exec::cmd_handler::cmd_handler(std::vector<std::vector<std::wstring>> da_man, cmd *da_ptr)
 {
 	man = da_man;
 	ptr = da_ptr;
-	acompl = da_acompl;
 }
 
 void exec::cmd_handler::gman(std::vector<std::vector<std::wstring>> &trg)
@@ -29,13 +32,9 @@ void exec::cmd_handler::gman(std::vector<std::vector<std::wstring>> &trg)
 	trg = man;
 }
 
-wint_t exec::cmd_handler::gacompl(int pos)
+void exec::cmd_handler::gacompl(std::vector<std::wstring> arg, std::vector<std::wstring> &trg)
 {
-	if (pos >= acompl.size())
-		return 0;
-	if (acompl[pos] == 32)
-		return 0;
-	return acompl[pos];
+	ptr->acompl(arg, trg);
 }
 
 exec::cmd *exec::cmd_handler::gptr()
@@ -45,17 +44,12 @@ exec::cmd *exec::cmd_handler::gptr()
 
 void exec::add(std::wstring name, std::vector<std::vector<std::wstring>> da_man, cmd *da_ptr)
 {
-	add(name, da_man, da_ptr, L"");
-}
-
-void exec::add(std::wstring name, std::vector<std::vector<std::wstring>> da_man, cmd *da_ptr, std::wstring da_acompl)
-{
 	if (cmdz.find(name) != cmdz.end() || name.size() < 2 || name.size() > 10 || !core::io.iz_k(name))
 		return;
 	if (name.find('/') != std::wstring::npos)
 		return;
 	try {
-			cmdz[name] = new cmd_handler(da_man, da_ptr, da_acompl);
+			cmdz[name] = new cmd_handler(da_man, da_ptr);
 	} catch (std::bad_alloc) {
 		exit(EXIT_FAILURE);
 	}
@@ -73,11 +67,17 @@ void exec::gman(std::wstring da_cmd, std::vector<std::vector<std::wstring>> &trg
 	cmdz[da_cmd]->gman(trg);
 }
 
-wint_t exec::gacompl(std::wstring da_cmd, int pos)
+void exec::cmd_gacompl(std::wstring input, std::vector<std::wstring> &trg)
 {
-	if (!iz_cmd(da_cmd))
-		return 0;
-	return cmdz[da_cmd]->gacompl(pos);
+	trg.clear();
+	std::vector<std::wstring> arg = interpreter(input);
+	if (input[input.size() - 1] != 32)
+		arg.erase(arg.end() - 1);
+	arg[0].erase(0, 1);
+	if (cmdz.find(arg[0]) == cmdz.end())
+		return;
+	
+	cmdz[arg[0]]->gacompl(arg, trg);
 }
 
 bool exec::iz_cmd(std::wstring input)

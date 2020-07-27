@@ -5,7 +5,7 @@ public:
 		core::exec.add(L"quit", {{L"", L"quit kewl"}}, this);
 	}
 
-	int usr(std::vector<std::wstring> arg)
+	uint8_t usr(std::vector<std::wstring> arg)
 	{
 		if (arg.size() != 1)
 			return 2;
@@ -17,10 +17,10 @@ class help: public core::exec::cmd {
 public:
 	help()
 	{
-		core::exec.add(L"help", {{L"", L"get list of cmdz"}, {L"cmd", L"get help 4 da cmd"}}, this, L"/");
+		core::exec.add(L"help", {{L"", L"get list of cmdz"}, {L"cmd", L"get help 4 da cmd"}}, this);
 	}
 
-	int usr(std::vector<std::wstring> arg)
+	uint8_t usr(std::vector<std::wstring> arg)
 	{
 		std::vector<std::wstring> cmdz;
 		core::exec.gcmdz(cmdz);
@@ -43,9 +43,7 @@ public:
 			}
 			core::io << core::io::msg(L"kewl", tmp);
 			core::io << core::io::msg(L"hr", L"");
-		} else if (arg.size() == 2) {
-			if (arg[1][0] == '/')
-				arg[1].erase(0, 1);
+			} else if (arg.size() == 2) {
 			if (arg[1].size() == 0)
 				return 2;
 			if (arg[1].size() > 15) {
@@ -70,6 +68,13 @@ public:
 		}
 		return 0;
 	}
+
+	void acompl(std::vector<std::wstring> arg, std::vector<std::wstring> &trg)
+	{
+		if (arg.size() != 1)
+			return;
+		core::exec.gcmdz(trg);
+	}
 } help;
 
 class cls: public core::exec::cmd {
@@ -79,7 +84,7 @@ public:
 		core::exec.add(L"cls", {{L"", L"clear screen"}}, this);
 	}
 
-	int usr(std::vector<std::wstring> arg)
+	uint8_t usr(std::vector<std::wstring> arg)
 	{
 		if (arg.size() != 1)
 			return 2;
@@ -88,14 +93,29 @@ public:
 	}
 } cls;
 
+class erase: public core::exec::cmd {
+public:
+	erase()
+	{
+		core::exec.add(L"erase", {{L"", L"erase all messages and print kewl logo etc."}}, this);
+	}
+	uint8_t usr(std::vector<std::wstring> arg)
+	{
+		if (arg.size() != 1)
+			return 2;
+		core::io.da_erase();
+		return 0;
+	}
+} erase;
+
 class reset: public core::exec::cmd {
 public:
 	reset()
 	{
-		core::exec.add(L"reset", {{L"", L"reset output-screen to itz initial state"}}, this);
+		core::exec.add(L"reset", {{L"", L"reset IO screen"}}, this);
 	}
 
-	int usr(std::vector<std::wstring> arg)
+	uint8_t usr(std::vector<std::wstring> arg)
 	{
 		if (arg.size() != 1)
 			return 2;
@@ -111,7 +131,7 @@ public:
 		core::exec.add(L"conn", {{L"address:port nick0,...,nick15", L"connect to kewl serv"}}, this);
 	}
 
-	int usr(std::vector<std::wstring> arg)
+	uint8_t usr(std::vector<std::wstring> arg)
 	{
 		if (arg.size() != 3)
 			return 2;
@@ -162,14 +182,14 @@ public:
 		core::exec.add(L"disconn", {{L"", L"disconnect from kewl serv"}}, this);
 	}
 
-	int usr(std::vector<std::wstring> arg)
+	uint8_t usr(std::vector<std::wstring> arg)
 	{
 		if (arg.size() != 1)
 			return 2;
 		return core::serv.disconn();
 	}
 
-	int serv(std::vector<std::wstring> arg)
+	uint8_t serv(std::vector<std::wstring> arg)
 	{
 		if (arg.size() != 1)
 			return 2;
@@ -187,7 +207,7 @@ public:
 		core::exec.add(L"usrz", {{L"", L"print all usrz on serv"}}, this);
 	}
 
-	int usr(std::vector<std::wstring> arg)
+	uint8_t usr(std::vector<std::wstring> arg)
 	{
 		if (arg.size() != 1)
 			return 2;
@@ -226,7 +246,7 @@ public:
 		return 0;
 	}
 
-	int serv(std::vector<std::wstring> arg)
+	uint8_t serv(std::vector<std::wstring> arg)
 	{
 		if (arg.size() != 3)
 			return 2;
@@ -250,7 +270,7 @@ public:
 		core::exec.add(L"ping", {{L"", L"get ping on current server"}}, this);
 	}
 
-	int usr(std::vector<std::wstring> arg)
+	uint8_t usr(std::vector<std::wstring> arg)
 	{
 		if (arg.size() != 1)
 			return 2;
@@ -270,7 +290,7 @@ public:
 		return 0;
 	}
 
-	int serv(std::vector<std::wstring> arg)
+	uint8_t serv(std::vector<std::wstring> arg)
 	{
 		timeval tmp;
 		gettimeofday(&tmp, NULL);
@@ -296,7 +316,7 @@ public:
 		core::exec.add(L"version", {{L"", L"print current version"}}, this);
 	}
 
-	int usr(std::vector<std::wstring> arg)
+	uint8_t usr(std::vector<std::wstring> arg)
 	{
 		if (arg.size() != 1)
 			return 2;
@@ -312,7 +332,7 @@ public:
 		core::exec.add(L"about", {{L"", L"wtf iz kewl about"}}, this);
 	}
 
-	int usr(std::vector<std::wstring> arg)
+	uint8_t usr(std::vector<std::wstring> arg)
 	{
 		if (arg.size() != 1)
 			return 2;
@@ -334,7 +354,7 @@ public:
 		core::exec.add(L"beep", {{L"test", L"test da beep"}, {L"on/off", L"turn da beep on/off"}, {L"set delay_in_ms", L"set minimal delay between 2 beepz"}}, this);
 	}
 
-	int usr(std::vector<std::wstring> arg)
+	uint8_t usr(std::vector<std::wstring> arg)
 	{
 		if (arg.size() < 2)
 			return 2;
@@ -384,6 +404,13 @@ public:
 
 		return 0;
 	}
+
+	void acompl(std::vector<std::wstring> arg, std::vector<std::wstring> &trg)
+	{
+		if (arg.size() != 1)
+			return;
+		trg = {L"on", L"off", L"set", L"test"};
+	}
 } beep;
 
 class hr: public core::exec::cmd {
@@ -393,7 +420,7 @@ public:
 		core::exec.add(L"hr", {{L"", L"print horizontal line (only if da last msg iz not hr too)"}}, this);
 	}
 
-	int usr(std::vector<std::wstring> arg)
+	uint8_t usr(std::vector<std::wstring> arg)
 	{
 		if (arg.size() != 1)
 			return 2;
@@ -401,3 +428,149 @@ public:
 		return 0;
 	}
 } hr;
+
+class ui: public core::exec::cmd {
+private:
+	uint8_t set(std::vector<std::wstring> wut)
+	{
+		if (wut.size() == 0)
+			return 2;
+		std::wstring type = wut[0].substr(0, wut[0].find(L'_') + 1);
+		if (type == L"attr_") {
+			if (wut.size() != 4)
+				return 2;
+			switch (core::io.ui.set(wut[0], {wut[1], wut[2], wut[3]})) {
+			case 0:
+				core::io << core::io::msg(L"kewl", L"property set successful");
+				break;
+			case 255:
+				core::io << core::io::msg(L"kewl", L"WARN: same as current value");
+				break;
+			case 1:
+				core::io << core::io::msg(L"kewl", L"ERR: unknown property: \"" + wut[0] + L'"');
+				return 1;
+			case 2:
+				return 2;
+			case 3:
+				core::io << core::io::msg(L"kewl", L"ERR: unknown color: \"" + wut[1]);
+				return 1;
+			case 4:
+				core::io << core::io::msg(L"kewl", L"ERR: unknown color: \"" + wut[2]);
+				return 1;
+			case 5:
+				core::io << core::io::msg(L"kewl", L"ERR: unknown weight: \"" + wut[3]);
+				return 1;
+			}
+		} else if (type == L"txt_") {
+			std::wstring tmp;
+			for (int i = 1; i < wut.size(); i++)
+				tmp += (i == 1 ? L"" : L" ") + wut[i];
+			switch (core::io.ui.set(wut[0], tmp)) {
+			case 0:
+				core::io << core::io::msg(L"kewl", L"property set successful");
+				break;
+			case 255:
+				core::io << core::io::msg(L"kewl", L"WARN: same as current value");
+				break;
+			case 1:
+				core::io << core::io::msg(L"kewl", L"ERR: property not found: \"" + wut[0] + L'"');
+				return 1;
+			case 2:
+				return 2;
+			case 3:
+				core::io << core::io::msg(L"kewl", L"ERR: not in length range (" + core::io.ui.grange(wut[0]) + L')');
+				return 1;
+			}
+		} else if (type == L"char_") {
+			wint_t tmp;
+			if (wut.size() == 1) {
+				tmp = 32;
+			} else if (wut.size() == 2) {
+				if (wut[1].size() != 1) {
+					core::io << core::io::msg(L"kewl", L"ERR: not a char: \"" + wut[1] + L'"');
+					return 1;
+				}
+				tmp = wut[1][0];
+			} else {
+				return 2;
+			}
+			core::io.ui.set(wut[0], tmp);
+		} else {
+			return 2;
+		}
+		return 0;
+	}
+public:
+	ui()
+	{
+		core::exec.add(L"ui", {{L"reset", L"reset everything to itz initial state"}, {L"reset some_property", L"reset some_property to itz initial state"}, {L"set attr_property fg_col bg_col txt_weight"}, {L"set txt_property blah blah blah string"}, {L"set char_property #", L"set property valuez"}, {L"list propertiez/colorz/weightz", L"get list of all propertiez/..."}}, this);
+	}
+
+	uint8_t usr(std::vector<std::wstring> arg)
+	{
+		if (arg.size() == 1)
+			return 2;
+		if (arg[1] == L"reset") {
+			if (arg.size() == 2) {
+				core::io.ui.reset();
+				core::io << core::io::msg(L"kewl", L"propertiez reset successful");
+			} else if (arg.size() == 3) {
+				if (core::io.ui.reset(arg[2]) == 1) {
+					core::io << core::io::msg(L"kewl", L"ERR: unknown property: \"" + arg[2] + L'"');
+					return 1;
+				}
+				core:: io << core::io::msg(L"kewl", L"property reset successful");
+			} else {
+				return 2;
+			}
+		} else if (arg[1] == L"set") {
+			arg.erase(arg.begin(), arg.begin() + 2);
+			return set(arg);
+		} else if (arg[1] == L"list") {
+			if (arg.size() != 3)
+				return 2;
+			std::vector<std::wstring> tmp;
+			if (arg[2] == L"propertiez") {
+				core::io.ui.gpropertiez(tmp);
+			} else if (arg[2] == L"colorz") {
+				core::io.ui.gcolorz(tmp);
+			} else if (arg[2] == L"weightz") {
+				core::io.ui.gweightz(tmp);
+			} else {
+				core::io << core::io::msg(L"kewl", L"ERR: unknown list request: \"" + arg[2] + L'"');
+				return 1;
+			}
+			core::io << core::io::msg(L"hr", L"");
+			for (int i = 0; i < tmp.size(); i++)
+				core::io << core::io::msg(L"kewl", tmp[i]);
+			core::io << core::io::msg(L"hr", L"");
+		} else {
+			return 2;
+		}
+		return 0;
+	}
+
+	void acompl(std::vector<std::wstring> arg, std::vector<std::wstring> &trg)
+	{
+		switch (arg.size()) {
+		case 1:
+			trg = {L"list", L"reset", L"set"};
+			break;
+		case 2:
+			if (arg[1] == L"set" || arg[1] == L"reset")
+				core::io.ui.gpropertiez(trg);
+			else if (arg[1] == L"list")
+				trg = {L"colorz", L"propertiez", L"weightz"};
+			break;
+		case 3:
+		case 4:
+			if (arg[1] == L"set" && arg[2].substr(0, 5) == L"attr_")
+				core::io.ui.gcolorz(trg);
+			break;
+		case 5:
+			if (arg[1] == L"set" && arg[2].substr(0, 5) == L"attr_")
+				core::io.ui.gweightz(trg);
+			break;
+		}
+	}
+} ui;
