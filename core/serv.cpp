@@ -225,6 +225,8 @@ void serv::handler(std::string hostname, std::string port, std::wstring usrz)
 		core::io::msg buf2;
 		for (;;) {
 			*this >> buf2;
+			if (buf2.gfrom() != core::serv.status.nick && buf2.gfrom() != L"kewl" && buf2.gbody()[0] != L'/')
+				core::io.beep();
 			if (buf2.gbody()[0] == L'/' && buf2.gfrom() == L"serv")
 				core::exec.serv << buf2.gbody().substr(1, buf2.gbody().size() - 1);
 			else

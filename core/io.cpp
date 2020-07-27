@@ -1,12 +1,17 @@
 io::io()
+:beep_on(true), beep_delay(667)
 {
 	std::locale::global(std::locale("en_US.UTF-8"));
+}
+
+void io::init()
+{
 	initscr();
 	noecho();
 	keypad(stdscr, true);
+	raw();
 	start_color();
 	use_default_colors();
-	raw();
 
 	init_pair(1, COLOR_YELLOW, COLOR_BLACK);	// msg err color
 	init_pair(2, COLOR_GREEN, COLOR_BLACK);		// msg private color
@@ -16,8 +21,9 @@ io::io()
 	init_pair(20, COLOR_WHITE, COLOR_BLUE);		// interface base color
 	init_pair(21, COLOR_WHITE, COLOR_RED);		// interface warn color
 	init_pair(22, COLOR_CYAN, COLOR_BLUE);		// interface decor color
-	
-	core::io.mkwin();
+
+	gettimeofday(&beep_tm, NULL);
+	mkwin();
 }
 
 io::~io()
@@ -42,6 +48,11 @@ bool io::iz_k(std::wstring chk)
 		if(!iz_k(chk[i]))
 			return false;
 	return true;
+}
+
+bool io::iz_k(std::string chk)
+{
+	return iz_k(std::wstring(chk.begin(), chk.end()));
 }
 
 std::wstring io::trim(std::wstring s)
@@ -180,8 +191,8 @@ void io::operator>>(std::wstring &trg)
 			i.pos = 0;
 			upasswd = !upasswd;
 		}
-		if (ch == 0) {		// ERR
-			std::cerr << "ERR: failed get keypress";
+		if (ch == 0 | ch == -1) {	// ERR
+			std::wcerr << L"ERR: failed to capture keypress\n";
 			exit(1);
 		} else if (ch == 10) {
 			if (!upasswd) {
@@ -253,7 +264,7 @@ void io::operator>>(std::wstring &trg)
 		if (i.buf.size() > 255) {
 			i.buf.erase(i.pos -= i.buf.size() - 255, i.buf.size() - 255);
 			if (!max) {
-				core::io << core::io::msg(L"kewl", L"ERR: input length limit reached");
+				core::io << core::io::msg(L"kewl", L"ERR: length limit already reached");
 				max = true;
 			} else {
 				i.draw();
@@ -507,6 +518,52 @@ void io::cls()
 	for (int i = 0; i < 320; i++)
 		o.msgz[i] = core::io::msg();
 	mkwin();
+}
+
+void io::beep(bool interactive)
+{
+	if (!beep_on) {
+		if (interactive)
+			core::io << core::io::msg(L"kewl", L"*disabled*");
+		return;
+	}
+	timeval tmp;
+	gettimeofday(&tmp, NULL);
+	if (1000000 * (tmp.tv_sec - beep_tm.tv_sec) + tmp.tv_usec - beep_tm.tv_usec < 1000 * beep_delay) {
+		if (interactive)
+			core::io << core::io::msg(L"kewl", L"*delay not elapsed*");
+		return;
+	}
+	beep_tm = tmp;
+	std::wcout << L'\a' << std::flush;
+	if (interactive)
+		core::io << core::io::msg(L"kewl", L"*beep*");
+}
+
+void io::beep()
+{
+	beep(false);
+}
+
+void io::beep_sdelay(unsigned int da_delay)
+{
+	if (da_delay >= 0)
+		beep_delay = da_delay;
+}
+
+void io::beep_son(bool da_on)
+{
+	beep_on = da_on;
+}
+
+bool io::beep_gon()
+{
+	return beep_on;
+}
+
+int io::beep_gdelay()
+{
+	return beep_delay;
 }
 
 io::o::o()

@@ -1,27 +1,42 @@
 /*
  * Konverzace Everybody Will Like client
- * C++ IRC
+ * C++ IRC with SSL encryption
  * "lol imma waste my time" ~ patz, d6022
  */
 
-#define VERSION 85	// editing diz may cause unexpected behaviour
+#define VERSION 86	// editing diz may cause unexpected behaviour
 
 // needed libz:
 // #include "libz/ur_package_manager.hpp"
 
 // extern scriptz:
-#include "core.hpp"		// io, exec, serv, cmdz
+#include "core.hpp"		// io, exec, perform, serv, cmdz, funcz
 
 
 int main(int argc, const char *argv[])
 {
-	std::string arg;
+	std::wstring arg;
 	for (int i = 1; i < argc; i++) {
 		if (i != 1)
-			arg += " ";
-		arg += argv[i];
+			arg += L' ';
+		std::string tmp(argv[i]);
+		arg += std::wstring(tmp.begin(), tmp.end());
 	}
-	core::exec.usr << std::wstring(arg.begin(), arg.end());
+	if (arg.size() > 0) {
+		std::string tmp;
+		switch (arg[0]) {
+		case L'-':
+			tmp = argv[0];
+			core::perform << std::wstring(tmp.begin(), tmp.end()) + L' ' + arg;
+			arg.clear();
+			break;
+		case L'/':
+			arg.erase(0, 1);
+			break;
+		}
+	}
+	core::io.init();
+	core::exec.usr << arg;
 
 	std::wstring input;
 	for (;;) {

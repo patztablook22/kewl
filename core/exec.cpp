@@ -62,7 +62,7 @@ void exec::add(std::wstring name, std::wstring da_syn, std::wstring da_desc, cmd
 		return;
 	try {
 			cmdz[name] = new cmd_handler(da_syn, da_desc, da_ptr, da_acompl);
-	} catch (std::bad_alloc &) {
+	} catch (std::bad_alloc) {
 		exit(EXIT_FAILURE);
 	}
 }
@@ -106,6 +106,8 @@ void exec::usr::operator<<(std::wstring input)
 		return;
 	}
 	switch (core::exec.cmdz[arg[0]]->gptr()->usr(arg)) {
+	case 0:
+		break;
 	case 2:
 		core::io << core::io::msg(L"kewl", L"ERR: invalid input");
 		break;

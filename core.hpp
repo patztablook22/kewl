@@ -5,9 +5,11 @@ namespace core {
 class io {
 public:
 	io(), ~io();
+	void init();
 
 	bool iz_k(wint_t);
-	bool iz_k(std::wstring); // check if itz allowed to use => only aZ, 09, аЯ, áŽ, ...
+	bool iz_k(std::wstring);
+	bool iz_k(std::string); // check if itz allowed to use => only aZ, 09, аЯ, áŽ, ...
 	std::wstring trim(std::wstring);
 	std::wstring ver_echo(int);
 
@@ -30,10 +32,15 @@ public:
 	void operator>>(std::wstring &);
 	void operator<<(msg);
 	void send_passwd();
-	void cls(), mkwin();
+	void cls(), beep(bool), beep(), beep_sdelay(unsigned int), beep_son(bool), mkwin();
+	bool beep_gon();
+	int beep_gdelay();
 private:
 	void _mkwin();
 	std::mutex scr_mtx;
+	bool beep_on;
+	int beep_delay;
+	timeval beep_tm;
 
 	class i {
 	public:
@@ -145,6 +152,33 @@ private:
 
 /*********************************************************************************************/
 
+class perform {
+public:
+	class func {
+	public:
+		virtual int usr(std::vector<std::wstring>) = 0;
+	};
+
+	class func_handler {
+	public:
+		func_handler(std::wstring, func *);
+		func *gptr();
+		std::wstring gdesc();
+	private:
+		std::wstring desc;
+		func *ptr;		
+	};
+	void add(std::wstring, std::wstring, func *);
+	void gfuncz(std::vector<std::wstring> &);
+	std::wstring gdesc(std::wstring);
+	bool iz_func(std::wstring);
+	void operator<<(std::wstring);
+private:
+	std::map<std::wstring, func_handler *> funcz;
+} perform;
+
+/*********************************************************************************************/
+
 class serv {
 public:
 	serv();
@@ -192,6 +226,14 @@ public:
 
 #include "core/io.cpp"
 #include "core/exec.cpp"
+#include "core/perform.cpp"
 #include "core/serv.cpp"
-#include "core/cmdz.cpp"
+
+namespace cmdz {
+	#include "core/cmdz.cpp"
+}
+namespace funcz {
+	#include "core/funcz.cpp"
+}
+
 }
