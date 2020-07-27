@@ -8,10 +8,12 @@ serv::serv()
 
 serv::~serv()
 {
+	if (!status.gactive())
+		return;
 	try {
 		*this << core::io::msg(L"kewl", L"/disconn");
+		disconn();
 	} catch (...) {}
-	disconn();
 }
 
 void serv::operator<<(core::io::msg todo)
@@ -94,6 +96,7 @@ int serv::disconn(bool e)
 	core::serv.status.clientz = 0;
 	core::serv.status.name.clear();
 	core::serv.status.nick.clear();
+	core::serv.status.otherz.clear();
 	if (e) {
 		core::io << core::io::msg(L"kewl", L"connection closed");
 	} else {
@@ -215,6 +218,10 @@ void serv::handler(std::string hostname, std::string port, std::wstring usr)
 			return;
 		case L'n':
 			core::io << core::io::msg(L"serv", L"ERR: entered nick iz already in use");
+			disconn();
+			return;
+		case L'r':
+			core::io << core::io::msg(L"serv", L"ERR: diz server iz only 4 already registered usrz");
 			disconn();
 			return;
 		}
@@ -410,8 +417,6 @@ void serv::status::gotherz(std::vector<std::wstring> &trg)
 
 void serv::status::join(std::wstring da_usr)
 {
-	if (connno() >= clientz)
-		return;
 	if (std::find(otherz.begin(), otherz.end(), da_usr) != otherz.end())
 		return;
 	if (da_usr != nick)

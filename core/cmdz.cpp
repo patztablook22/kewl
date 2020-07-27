@@ -199,46 +199,67 @@ class usrz: public core::exec::cmd {
 public:
 	usrz()
 	{
-		core::exec.add(L"usrz", {{L"", L"print all usrz on serv"}}, this);
+		core::exec.add(L"usrz", {{L"list", L"print all usrz on da server (default option)"}, {L"register", L"register ur actual nick on da server"}, {L"chpasswd", L"change ur passwd (if ur registered) on da server"}}, this);
 	}
 
 	uint8_t usr(std::vector<std::wstring> arg)
 	{
-		if (arg.size() != 1)
-			return 2;
 		if (core::serv.status.gnick().size() == 0) {
 			core::io << core::io::msg(L"kewl", L"ERR: no connection alive");
 			return 1;
 		}
-		int max_x, max_y;
-		getmaxyx(stdscr, max_y, max_x);
-		int ipl = (max_x - 8) / 16;
-		if (ipl <= 0)
-			ipl = 1;
-		std::vector<std::wstring> usrz;
-		core::serv.status.gotherz(usrz);
-		usrz.insert(usrz.begin(), core::serv.status.gnick());
-		core::io << core::io::msg(L"hr", L"");
-		std::wstring tmp;
-		if (usrz.size() == 0) {
-			core::serv.disconn(false);
+		if (arg.size() == 1 || arg[1] == L"list") {
+			int max_x, max_y;
+			getmaxyx(stdscr, max_y, max_x);
+			int ipl = (max_x - 8) / 16;
+			if (ipl <= 0)
+				ipl = 1;
+			std::vector<std::wstring> usrz;
+			core::serv.status.gotherz(usrz);
+			usrz.insert(usrz.begin(), core::serv.status.gnick());
+			core::io << core::io::msg(L"hr", L"");
+			std::wstring tmp;
+			if (usrz.size() == 0) {
+				core::serv.disconn(false);
+				return 2;
+			}
+			for (int i = 0; i < usrz.size(); i++) {
+				if (usrz.size() == 0)
+					exit(1);
+				if (i % ipl) {
+					tmp += std::wstring(16 - usrz[i - 1].size(), 32);
+				} else if (i != 0) {
+					core::io << core::io::msg(L"serv", tmp);
+					tmp.clear();
+				}
+				tmp += usrz[i];
+			}
+			core::io << core::io::msg(L"serv", tmp);
+			core::io << core::io::msg(L"hr", L"");
+		} else if (arg[1] == L"register") {
+			try {
+				core::serv << core::io::msg(L"kewl", L"/register");
+				core::io << core::io::msg(L"kewl", L"registration request sent");
+			} catch (...) {}
+		} else if (arg[1] == L"chpasswd") {
+			try {
+				core::serv << core::io::msg(L"kewl", L"/chpasswd");
+				core::io << core::io::msg(L"kewl", L"passwd change request sent");
+			} catch (...) {}
+		} else {
 			return 2;
 		}
-		for (int i = 0; i < usrz.size(); i++) {
-			if (usrz.size() == 0)
-				exit(1);
-			if (i % ipl) {
-				tmp += std::wstring(16 - usrz[i - 1].size(), 32);
-			} else if (i != 0) {
-				core::io << core::io::msg(L"serv", tmp);
-				tmp.clear();
-			}
-			tmp += usrz[i];
-		}
-		core::io << core::io::msg(L"serv", tmp);
-		core::io << core::io::msg(L"hr", L"");
 
 		return 0;
+	}
+
+	void acompl(std::vector<std::wstring> arg, std::vector<std::wstring> &trg)
+	{
+		switch (arg.size()) {
+		case 1:
+			trg = {L"chpasswd", L"list", L"register"};
+			break;
+		}
 	}
 
 	uint8_t serv(std::vector<std::wstring> arg)
@@ -257,7 +278,28 @@ public:
 		} else if (arg[1] == L"kick") {
 			core::serv.status.leave(arg[2]);
 			core::io << core::io::msg(L"serv", arg[2] + L" was kicked out");
+		} else if (arg[1] == L"register") {
+			core::io << core::io::msg(L"kewl", (arg[2] == L"0") ? L"serv requests new usr passwd" : L"serv requests control passwd");
+			core::io.send_passwd();
+		} else if (arg[1] == L"chpasswd") {
+			if (arg[2].size() == 0)
+				return 2;
+			switch (arg[2][0]) {
+			case L'0':
+				core::io << core::io::msg(L"kewl", L"serv requests auth passwd");
+				break;
+			case L'1':
+				core::io << core::io::msg(L"kewl", L"serv requests new usr passwd");
+				break;
+			case L'2':
+				core::io << core::io::msg(L"kewl", L"serv requests control passwd");
+				break;
+			}
+			core::io.send_passwd();
+		} else {
+			return 2;
 		}
+
 		core::io.beep();
 		return 0;
 	}
