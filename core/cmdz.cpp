@@ -46,6 +46,12 @@ public:
 		} else if (arg.size() == 2) {
 			if (arg[1][0] == '/')
 				arg[1].erase(0, 1);
+			if (arg[1].size() == 0)
+				return 2;
+			if (arg[1].size() > 15) {
+				core::io << core::io::msg(L"kewl", L"ERR: cmdz hav limited size to 15 charz");
+				return 1;
+			}
 			if (!core::exec.iz_cmd(arg[1])) {
 				core::io << core::io::msg(L"kewl", L"ERR: no such command: \"" + arg[1] + L"\"");
 				return 1;
@@ -73,10 +79,26 @@ public:
 		if (arg.size() != 1)
 			return 2;
 		core::io.cls();
-		core::io << core::io::msg(L"kewl", L"da screen has been cleared");
+		//core::io << core::io::msg(L"kewl", L"da screen has been cleared");
 		return 0;
 	}
 } cls;
+
+class reset: public core::exec::cmd {
+public:
+	reset()
+	{
+		core::exec.add(L"reset", L"<null>", L"reset output-screen to itz initial state", this);
+	}
+
+	int usr(std::vector<std::wstring> arg)
+	{
+		if (arg.size() != 1)
+			return 2;
+		core::io.reset();
+		return 0;
+	}
+} reset;
 
 class conn: public core::exec::cmd {
 public:
@@ -301,23 +323,6 @@ public:
 	}
 } about;
 
-class mute: public core::exec::cmd {
-public:
-	mute()
-	{
-		core::exec.add(L"mute", L"<nick>", L"mute/unmute incoming msgz from \"nick\"", this, L"@");
-	}
-
-	int usr(std::vector<std::wstring> arg)
-	{
-		if (arg.size() != 1)
-			return 2;
-
-		return 0;
-	}
-
-} mute;
-
 class beep: public core::exec::cmd {
 public:
 	beep()
@@ -337,14 +342,14 @@ public:
 			if (arg.size() > 2)
 				return 2;
 			if (core::io.beep_gon()) {
-				core::io << core::io::msg(L"kewl", L"ERR: beep already iz enabled");
+				core::io << core::io::msg(L"kewl", L"WARN: beep already iz enabled");
 				return 1;
 			}
 			core::io.beep_son(true);
 			core::io << core::io::msg(L"kewl", L"beep enabled");
 		} else if (arg[1] == L"off") {
 			if (!core::io.beep_gon()) {
-				core::io << core::io::msg(L"kewl", L"ERR: beep already iz disabled");
+				core::io << core::io::msg(L"kewl", L"WARN: beep already iz disabled");
 				return 1;
 			}
 			core::io.beep_son(false);
@@ -363,12 +368,8 @@ public:
 			}
 			if (arg[2] != std::to_wstring(tmp))
 				return 2;
-			if (tmp < 0) {
-				core::io << core::io::msg(L"kewl", L"ERR: beep delay must be nonnegative");
-				return 1;
-			}
 			if (core::io.beep_gdelay()  == tmp) {
-				core::io << core::io::msg(L"kewl", L"ERR: same as current value");
+				core::io << core::io::msg(L"kewl", L"WARN: same as current value");
 				return 1;
 			}
 			core::io.beep_sdelay(tmp);

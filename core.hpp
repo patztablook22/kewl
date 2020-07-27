@@ -32,7 +32,8 @@ public:
 	void operator>>(std::wstring &);
 	void operator<<(msg);
 	void send_passwd();
-	void cls(), beep(bool), beep(), beep_sdelay(unsigned int), beep_son(bool), mkwin();
+	void cls(), reset();
+	void beep(bool), beep(), beep_sdelay(unsigned int), beep_son(bool), mkwin();
 	bool beep_gon();
 	int beep_gdelay();
 private:
@@ -89,19 +90,18 @@ private:
 	public:
 		o();
 		friend void io::operator<<(msg);
-		friend void io::cls();
+		friend void io::cls(), io::reset();
 		int glen(), gpos0(), gpos1();
 		int glinez(int, int, int);
 		std::wstring gtitle();
 		void echo(int, int, int, int, int);
-		void scrll(bool);
-		void jump(bool);
-		void scrll_resize();
+		void scrll(bool), jump(bool);
+		void scrll_resize(), scrll_chk(int, int);
 		bool new_msg = false;
 	private:
 		msg msgz[320];
 		std::wstring title;
-		int len, pos0, pos1;
+		int len, pos0, pos1, pos2;
 	} o;
 
 } io;

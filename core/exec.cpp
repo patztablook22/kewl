@@ -101,6 +101,10 @@ void exec::usr::operator<<(std::wstring input)
 	std::vector<std::wstring> arg = core::exec.interpreter(input);
 	if (arg.size() == 0 || arg[0].size() == 0 || input[0] == 32)
 		return;
+	if (arg[0].size() > 15) {
+		core::io << core::io::msg(L"kewl", L"ERR: cmdz hav limited size to 15 charz");
+		return;
+	}
 	if (core::exec.cmdz.find(arg[0]) == core::exec.cmdz.end()) {
 		core::io << core::io::msg(L"kewl", L"ERR: command not found: \"" + arg[0] + L"\"");
 		return;

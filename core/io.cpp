@@ -14,13 +14,13 @@ void io::init()
 	use_default_colors();
 
 	init_pair(1, COLOR_YELLOW, COLOR_BLACK);	// msg err color
-	init_pair(2, COLOR_GREEN, COLOR_BLACK);		// msg private color
+	init_pair(2, COLOR_MAGENTA, COLOR_BLACK);	// msg warn color
+	init_pair(3, COLOR_GREEN, COLOR_BLACK);		// msg private color
 	init_pair(10, COLOR_CYAN, COLOR_BLACK);		// <kewl> color
 	init_pair(11, COLOR_BLUE, COLOR_BLACK);		// <serv> color
 	init_pair(12, COLOR_WHITE, COLOR_BLACK);	// <someone> color
 	init_pair(20, COLOR_WHITE, COLOR_BLUE);		// interface base color
-	init_pair(21, COLOR_WHITE, COLOR_RED);		// interface warn color
-	init_pair(22, COLOR_CYAN, COLOR_BLUE);		// interface decor color
+	init_pair(21, COLOR_CYAN, COLOR_BLUE);		// interface decor color
 
 	gettimeofday(&beep_tm, NULL);
 	mkwin();
@@ -116,8 +116,10 @@ void io::msg::set(std::wstring da_from, std::wstring da_body)
 
 	if ((col0 == 0 || col0 == 1) && core::io.trim(body).substr(0, 5) == std::wstring(L"ERR: "))
 		col1 = 1;
-	else if (col0 > 0 && body[0] == L'@' && w0 > 3 && w0 < 17)
+	else if ((col0 == 0 || col0 == 1) && core::io.trim(body).substr(0, 6) == std::wstring(L"WARN: "))
 		col1 = 2;
+	else if (col0 > 0 && body[0] == L'@' && w0 > 3 && w0 < 17)
+		col1 = 3;
 	else
 		col1 = 0;
 	valid = true;
@@ -496,28 +498,61 @@ void io::i::hist::histtobuf(bool bacc)
 
 void io::operator<<(msg da_msg)
 {
+	int max_x, max_y, tmp_lcount, tmp_omit, i, j;
+	getmaxyx(stdscr, max_y, max_x);
 	if (!da_msg.gvalid())
 		return;
+	tmp_lcount = -o.pos1;
+	for (i = o.pos0; i >= 0 && tmp_lcount < max_y - 3 && i < o.len; i--)
+		tmp_lcount += o.glinez(i, max_x, max_y);
+	tmp_omit = tmp_lcount - max_y + 3;
 	if (o.len < 320)
 		o.len++;
 	for (int i = o.len - 1; i > 0; i--)
 		o.msgz[i] = o.msgz[i - 1];
 	o.msgz[0] = da_msg;
-	if (o.pos0 != 0 || o.pos1 != 0) {
+	if (o.pos0 != -2 || o.pos1 != 0) {
 		if (o.pos0 + 1 < o.len)
 			o.pos0++;
 		else
 			o.pos1 = 0;
 	}
+	if (o.pos2 != o.len - 2)
+		o.pos2++;
 	o.new_msg = true;
-	core::io.mkwin();
+	
+	tmp_lcount = -o.pos1;
+	for (j = o.pos0; j >= 0 && j < o.len && tmp_lcount < max_y - 3; j--)
+		tmp_lcount += o.glinez(j, max_x, max_y);
+	
+	 if ((tmp_omit < 0 || (tmp_omit == 0 && i == -1)) && tmp_lcount - max_y + 3 >= 0) {
+		o.pos0 = -2;
+		o.pos1 = 0;
+	}
+	mkwin();
 }
 
 void io::cls()
 {
+	o.pos0 = -1;
+	o.pos1 = 0;
+	o.pos2 = -1;
+	mkwin();
+}
+
+void io::reset()
+{
+	o.len = 0;
+	o.pos0 = -2;
+	o.pos1 = 0;
+	o.pos2 = 0;
 	for (int i = 0; i < 320; i++)
 		o.msgz[i] = core::io::msg();
-	mkwin();
+	core::io << core::io::msg(L"kewl", L" _              _ ");
+	core::io << core::io::msg(L"kewl", L"| |_______ __ _| |");
+	core::io << core::io::msg(L"kewl", L"| / / -_) V  V / |");
+	core::io << core::io::msg(L"kewl", L"|_\\_\\___|\\_/\\_/|_|");
+	core::io << core::io::msg(L"kewl", o.title);
 }
 
 void io::beep(bool interactive)
@@ -570,11 +605,7 @@ io::o::o()
 {
 	title = L"Konverzace Everybody Will Like ";
 	title += core::io.ver_echo(VERSION);
-	core::io << core::io::msg(L"kewl", L" _              _ ");
-	core::io << core::io::msg(L"kewl", L"| |_______ __ _| |");
-	core::io << core::io::msg(L"kewl", L"| / / -_) V  V / |");
-	core::io << core::io::msg(L"kewl", L"|_\\_\\___|\\_/\\_/|_|");
-	core::io << core::io::msg(L"kewl", title);
+	core::io.reset();
 }
 
 int io::o::glen()
@@ -666,14 +697,13 @@ void io::o::echo(int id, int max_x, int max_y, int omit0, int omit1)
 
 void io::o::scrll(bool bacc)
 {
-	int max_x, max_y, ldiff, tmp_lcount = 0, i, way = (bacc ? -1 : 1), new_pos0, new_pos1;
+	int max_x, max_y, ldiff, tmp_lcount = 0, i, way = (bacc ? -1 : 1);
 	getmaxyx(stdscr, max_y, max_x);
 	ldiff = (max_y - 3) / 4;
 	if (ldiff <= 0)
 		ldiff = 1;
 
-
-	if (pos0 == 0 && pos1 == 0) {
+	if (pos0 == -2 && pos1 == 0) {
 		for (i = 0; i < glen() && tmp_lcount < max_y - 3; i++)
 			tmp_lcount += glinez(i, max_x, max_y);
 		pos0 = i - 1;
@@ -686,9 +716,11 @@ void io::o::scrll(bool bacc)
 		tmp_lcount = pos1;
 		for (i = pos0 + 1; i >= 0 && i < glen() && tmp_lcount < ldiff; i++)
 			tmp_lcount += glinez(i, max_x, max_y);
-		new_pos0 = i - 1;
-		new_pos1 = tmp_lcount - ldiff;
+		pos0 = i - 1;
+		pos1 = tmp_lcount - ldiff;
 	} else {
+		if (pos0 == -1)
+			return;
 		tmp_lcount = 0;
 		for (i = pos0; i >=0 && i < glen(); i--) {
 			tmp_lcount += glinez(i, max_x, max_y);
@@ -697,30 +729,32 @@ void io::o::scrll(bool bacc)
 			if (tmp_lcount > ldiff)
 				break;
 		}
-		new_pos0 = i;
-		new_pos1 = glinez(new_pos0, max_x, max_y) - tmp_lcount + ldiff;
+		pos0 = i;
+		if (i >= 0)
+			pos1 = glinez(pos0, max_x, max_y) - tmp_lcount + ldiff;
+		else
+			pos1 = 0;
 	}
 
-	if (new_pos1 < 0)
-		new_pos1 = 0;
-	tmp_lcount = -new_pos1;
-	for (i = new_pos0; i >= 0 && tmp_lcount < max_y - 3; i--)
-		tmp_lcount += glinez(i, max_x, max_y);
-
-	if (i + 1 == 0 && tmp_lcount - max_y + 3 <= 0) {
-		pos0 = 0;
+	if (pos1 < 0)
 		pos1 = 0;
-	} else {
-		pos0 = new_pos0;
-		pos1 = new_pos1;
-	}
+	if (way == -1)
+		scrll_chk(max_x, max_y);
 	core::io.mkwin();
 }
 
 void io::o::jump(bool bacc)
 {
+	int max_x, max_y;
+	getmaxyx(stdscr, max_y, max_x);
 	if (bacc) {
-		pos0 = 0;
+		int tmp_lcount = 0, i;
+		for (i = 0; i < len && tmp_lcount < max_y - 3; i++)
+			tmp_lcount += glinez(i, max_x, max_y);
+		if (i - 1 <= pos2)
+			pos0 = -2;
+		else
+			pos0 = pos2;
 		pos1 = 0;
 	} else {
 		pos0 = len - 1;
@@ -731,19 +765,22 @@ void io::o::jump(bool bacc)
 
 void io::o::scrll_resize()
 {
-	int max_x, max_y, i, tmp_lcount;
+	int max_x, max_y;
 	getmaxyx(stdscr, max_y, max_x);
-	pos1 = 0;
-	tmp_lcount = 0;
+	if (pos0 != -2 || pos1 != 0)
+		scrll_chk(max_x, max_y);
+	core::io.mkwin();
+}
+
+void io::o::scrll_chk(int max_x, int max_y)
+{
+	int i, tmp_lcount;
+	tmp_lcount = -pos1;
 	for (i = pos0; i >= 0 && tmp_lcount < max_y - 3; i--)
 		tmp_lcount += glinez(i, max_x, max_y);
-
-	if (i + 1 == 0 && tmp_lcount - max_y + 3 <= 0) {
-		pos0 = 0;
-		pos1 = 0;
-	}
-
-	core::io.mkwin();
+	
+	if (tmp_lcount < max_y - 3 && pos0 <= pos2)
+		jump(true);
 }
 
 void io::mkwin()
@@ -757,9 +794,11 @@ void io::_mkwin()
 {
 	int max_x, max_y;
 	getmaxyx(stdscr, max_y, max_x);
+	if (max_x <= 4 || max_y < 1)
+		return;
 	erase();
 	int tmp_lcount, j, begin, end, omit0, omit1;
-	if (o.gpos0() == 0 && o.gpos1() == 0) {
+	if (o.gpos0() == -2 && o.gpos1() == 0) {
 		tmp_lcount = 0;
 		for (j = 0; j < o.glen() && tmp_lcount < max_y - 3; j++)
 			tmp_lcount += o.glinez(j, max_x, max_y);
@@ -794,7 +833,7 @@ void io::_mkwin()
 	attroff(COLOR_PAIR(20));
 	core::serv.status.draw(max_x, max_y);
 	attron(COLOR_PAIR(20));
-	if (end != 0 && o.new_msg)
+	if (!(end == 0 && omit1 <= 0) && o.new_msg)
 		mvaddwstr(max_y - 2, max_x - 5, std::wstring(L"_NEW_").substr(0, max_x).c_str());
 	else
 		o.new_msg = false;

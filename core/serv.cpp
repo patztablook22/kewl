@@ -67,8 +67,9 @@ int serv::disconn(bool e = true)
 	core::serv.status.nick.clear();
 	if (!e) {
 		core::io << core::io::msg(L"kewl", L"ERR: connection lost");
-	} else if (boi_msg.size() != 0) {
-		core::io << core::io::msg(L"serv", L'@' + tmp_nick + L' ' + boi_msg);
+	} else {
+		if (boi_msg.size() != 0)
+			core::io << core::io::msg(L"serv", L'@' + tmp_nick + L' ' + boi_msg);
 		core::io << core::io::msg(L"kewl", L"connection closed");
 	}
 	hoi_msg.clear();
@@ -219,7 +220,8 @@ void serv::handler(std::string hostname, std::string port, std::wstring usrz)
 		*this << L"kk";
 		*this >> buf1;
 		boi_msg = buf1.erase(0, 1);
-		core::io << core::io::msg(L"serv", L'@' + core::serv.status.nick + L' ' + hoi_msg);
+		if (hoi_msg.size() != 0)
+			core::io << core::io::msg(L"serv", L'@' + core::serv.status.nick + L' ' + hoi_msg);
 
 		*this << L"sniffing";
 		core::io::msg buf2;
@@ -316,31 +318,31 @@ void serv::status::draw(int max_x, int max_y)
 	if (max_x < 0)
 		return;
 	move(max_y - 2, 1);
-	attron(COLOR_PAIR(22));
+	attron(COLOR_PAIR(21));
 	attron(A_BOLD);
 	printw("[ ");
 	attroff(A_BOLD);
-	attroff(COLOR_PAIR(22));
+	attroff(COLOR_PAIR(21));
 	attron(COLOR_PAIR(20));
 	addwstr(tmp.c_str());
 	attroff(COLOR_PAIR(20));
-	attron(COLOR_PAIR(22));
+	attron(COLOR_PAIR(21));
 	attron(A_BOLD);
 	printw(" ]");
 	tmp = gactive() ? name : L"---";
 	max_x -= 5 + tmp.size();
 	if (max_x < 0) {
 		attroff(A_BOLD);
-		attroff(COLOR_PAIR(22));
+		attroff(COLOR_PAIR(21));
 		return;
 	}
 	printw(" [ ");
 	attroff(A_BOLD);
-	attroff(COLOR_PAIR(22));
+	attroff(COLOR_PAIR(21));
 	attron(COLOR_PAIR(20));
 	addwstr(tmp.c_str());
 	attroff(COLOR_PAIR(20));
-	attron(COLOR_PAIR(22));
+	attron(COLOR_PAIR(21));
 	attron(A_BOLD);
 	max_x -= 4 + (gactive() ? std::to_wstring(connno()).size() + std::to_wstring(clientz).size() : 2);
 	if (max_x < 0) {
@@ -351,23 +353,23 @@ void serv::status::draw(int max_x, int max_y)
 	}
 	printw(" | ");
 	attroff(A_BOLD);
-	attroff(COLOR_PAIR(22));
+	attroff(COLOR_PAIR(21));
 	attron(COLOR_PAIR(20));
 	gactive() ? printw("%d", connno()) : printw("?");
 	attroff(COLOR_PAIR(20));
-	attron(COLOR_PAIR(22));
+	attron(COLOR_PAIR(21));
 	attron(A_BOLD);
 	printw("/");
 	attroff(A_BOLD);
-	attroff(COLOR_PAIR(22));
+	attroff(COLOR_PAIR(21));
 	attron(COLOR_PAIR(20));
 	gactive() ? printw("%d", clientz) : printw("?");
 	attroff(COLOR_PAIR(20));
-	attron(COLOR_PAIR(22));
+	attron(COLOR_PAIR(21));
 	attron(A_BOLD);
 	printw(" ]");
 	attroff(A_BOLD);
-	attroff(COLOR_PAIR(22));
+	attroff(COLOR_PAIR(21));
 }
 
 void serv::status::draw()
