@@ -87,6 +87,11 @@ private:
 
 	void init()
 	{
+		if (!isatty(STDIN_FILENO)) {
+			std::wcerr << L"ERR: failed to read stdin" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
 		initscr();
 		noecho();
 		keypad(stdscr, true);
@@ -110,12 +115,11 @@ public:
 
 		do {
 			get_wch(&ch);
-			if (ch == 0 || ch == -1) {
-				exit(EXIT_FAILURE);
-				std::wcerr << L"ERR: failed to capture keypress\n";
-			}
 			title();
-			printw("%d", ch);
+			if (ch == 0 || ch == -1)
+				addwstr(L"???");
+			else
+				printw("%d", ch);
 			refresh();
 		} while (ch != 3);
 

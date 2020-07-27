@@ -8,6 +8,7 @@ io::ui::ui()
 	colorz[L"magenta"] = COLOR_MAGENTA;
 	colorz[L"cyan"] = COLOR_CYAN;
 	colorz[L"wheit"] = COLOR_WHITE;
+	colorz[L"term_default"] = -1;
 
 	weightz[L"dim"] = A_DIM;
 	weightz[L"normal"] = A_NORMAL;
@@ -26,17 +27,22 @@ void io::ui::init()
 	new property0(L"frame_hl", {L"blacc", L"wheit", L"bold"});
 	new property0(L"new_tag", {L"blacc", L"wheit", L"normal"});
 
-	new property0(L"usr_kewl", {L"wheit", L"blacc", L"bold"});
-	new property0(L"usr_serv", {L"blacc", L"blacc", L"bold"});
-	new property0(L"usr_otherz", {L"wheit", L"blacc", L"dim"});
+	new property0(L"usr_kewl", {L"wheit", L"term_default", L"bold"});
+	new property0(L"usr_serv", {L"blacc", L"term_default", L"bold"});
+	new property0(L"usr_otherz", {L"wheit", L"term_default", L"dim"});
+	new property0(L"body_kewl", {L"wheit", L"term_default", L"normal"});
+	new property0(L"body_serv", {L"wheit", L"term_default", L"normal"});
+	new property0(L"body_otherz", {L"wheit", L"term_default", L"normal"});
 
-	new property0(L"hr", {L"wheit", L"blacc", L"dim"});
-	new property0(L"err", {L"wheit", L"blacc", L"bold"});
-	new property0(L"warn", {L"wheit", L"blacc", L"bold"});
-	new property0(L"private", {L"blacc", L"blacc", L"bold"});
+	new property0(L"hr", {L"wheit", L"term_default", L"dim"});
+	new property0(L"err", {L"wheit", L"term_default", L"bold"});
+	new property0(L"warn", {L"wheit", L"term_default", L"bold"});
+	new property0(L"private", {L"blacc", L"term_default", L"bold"});
 
-	new property0(L"prompt_normal", {L"wheit", L"blacc", L"normal"});
-	new property0(L"prompt_passwd", {L"wheit", L"blacc", L"bold"});
+	new property0(L"prompt_normal", {L"wheit", L"term_default", L"normal"});
+	new property0(L"prompt_passwd", {L"wheit", L"term_default", L"bold"});
+	new property0(L"input_normal", {L"wheit", L"term_default", L"normal"});
+	new property0(L"input_passwd", {L"wheit", L"term_default", L"normal"});
 
 	new property1(L"prompt_normal", 0, 8, L"PROMPT> ");
 	new property1(L"prompt_passwd", 0, 8, L"PASSWD> ");
@@ -348,6 +354,11 @@ io::io()
 
 void io::init(bool init_ui)
 {
+	if (!isatty(STDIN_FILENO)) {
+		std::wcerr << L"ERR: failed to read stdin" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
 	initscr();
 	noecho();
 	keypad(stdscr, true);
@@ -478,24 +489,24 @@ void io::msg::set(std::wstring da_from, std::wstring da_body)
 	body = da_body;
 
 	if (from == std::wstring(L"kewl"))
-		prop0 = L"attr_usr_kewl";
+		prop0 = L"kewl";
 	else if (from == std::wstring(L"serv"))
-		prop0 = L"attr_usr_serv";
+		prop0 = L"serv";
 	else
-		prop0 = L"attr_usr_otherz";
+		prop0 = L"otherz";
 
 	w0 = body.find(' ');
 	if (w0 == std::wstring::npos)
 		w0 = da_body.size();
 
-	if (prop0 != L"attr_usr_otherz" && core::io.trim(body).substr(0, 5) == std::wstring(L"ERR: "))
+	if (prop0 != L"otherz" && core::io.trim(body).substr(0, 5) == std::wstring(L"ERR: "))
 		prop1 = L"attr_err";
-	else if (prop0 != L"attr_usr_otherz" && core::io.trim(body).substr(0, 6) == std::wstring(L"WARN: "))
+	else if (prop0 != L"otherz" && core::io.trim(body).substr(0, 6) == std::wstring(L"WARN: "))
 		prop1 = L"attr_warn";
-	else if (prop0 != L"attr_usr_kewl" && body[0] == L'@' && w0 > 3 && w0 < 17)
+	else if (prop0 != L"kewl" && body[0] == L'@' && w0 > 3 && w0 < 17)
 		prop1 = L"attr_private";
 	else
-		prop1 = L"";
+		prop1 = L"attr_body_" + prop0;
 	valid = true;
 }
 
@@ -563,11 +574,6 @@ void io::operator>>(std::wstring &trg)
 	for (;;) {
 		get_wch(&ch);
 		switch (ch) {
-		case -1:
-		case 0:
-			// ERR
-			std::wcerr << L"ERR: failed to capture keypress\n";
-			exit(1);
 		case 10:
 			// ENTER
 			if (!i.use_passwd) {
@@ -732,11 +738,13 @@ void io::i::_draw(int max_x, int max_y)
 	core::io.ui.on(use_passwd ? L"attr_prompt_passwd" : L"attr_prompt_normal");
 	mvaddwstr(max_y - 1, 0, prompt.substr(0, max_x).c_str());
 	core::io.ui.off(use_passwd ? L"attr_prompt_passwd" : L"attr_prompt_normal");
+	core::io.ui.on(use_passwd ? L"attr_input_passwd" : L"attr_input_normal");
 	move(max_y - 1, prompt.substr(0, max_x).size());
 	if (!use_passwd)
 		addwstr(buf.substr(begin, max_x - prompt.substr(0, max_x).size()).c_str());
 	else
 		core::io.ui.echo(L"char_passwd_input", buf.substr(begin, max_x - prompt.substr(0, max_x).size()).size());
+	core::io.ui.off(use_passwd ? L"attr_input_passwd" : L"attr_input_normal");
 	move(max_y - 1, pos - begin + prompt.substr(0, max_x).size());
 	refresh();
 }
@@ -1110,7 +1118,7 @@ void io::o::echo(int id, int max_x, int max_y, int omit0, int omit1)
 	std::wstring tmp_from(L"<");
 	tmp_from += msgz[id].gfrom();
 	tmp_from += L"> ";
-	core::io.ui.on(msgz[id].gprop0());
+	core::io.ui.on(L"attr_usr_" + msgz[id].gprop0());
 	
 	for (tmp_pos = 0;;) {
 		lcount++;
@@ -1131,7 +1139,7 @@ void io::o::echo(int id, int max_x, int max_y, int omit0, int omit1)
 		tmp_pos += tmp_inc;
 	}
 
-	core::io.ui.off(msgz[id].gprop0());
+	core::io.ui.off(L"attr_usr_" + msgz[id].gprop0());
 	core::io.ui.on(msgz[id].gprop1());
 
 	for (tmp_pos = 0; tmp_pos < msgz[id].gbody().size();) {
@@ -1150,13 +1158,17 @@ void io::o::echo(int id, int max_x, int max_y, int omit0, int omit1)
 			} else {
 				addwstr(msgz[id].gbody().substr(tmp_pos, msgz[id].gw0() - tmp_pos).c_str());
 				core::io.ui.off(msgz[id].gprop1());
+				core::io.ui.on(L"attr_body_" + msgz[id].gprop0());
 				addwstr(msgz[id].gbody().substr(msgz[id].gw0(), tmp_inc + tmp_pos - msgz[id].gw0()).c_str());
 			}
 		}
-		if (end_prop1)
+		if (end_prop1) {
 			core::io.ui.off(msgz[id].gprop1());
+			core::io.ui.on(L"attr_body_" + msgz[id].gprop0());
+		}
 		tmp_pos += tmp_inc;
 	}
+	core::io.ui.off(L"attr_body_" + msgz[id].gprop0());
 }
 
 void io::o::scrll(bool bacc)

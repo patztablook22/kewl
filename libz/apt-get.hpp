@@ -2,6 +2,7 @@
 #include <fstream>		// file stream
 #include <ncursesw/ncurses.h>	// interface
 #include <locale>		// UTF-32
+#include <csignal>		// signal handling
 #include <thread>		// std::thread
 #include <mutex>		// std::mutex
 #include <cstring>		// sizeof etc.

@@ -4,7 +4,7 @@
  * "lol imma waste my time" ~ patz, d6022
  */
 
-#define VERSION 95	// editing diz may cause unexpected behaviour
+#define VERSION 96	// editing diz may cause unexpected behaviour
 
 // needed libz:
 // #include "libz/ur_package_manager.hpp"
@@ -47,10 +47,17 @@ int main(int argc, const char *argv[])
 			input.clear();
 		}
 		input.erase(0, tmp);
-		core::io.init();
-		core::exec.macroz.init();
-		core::exec.usr << input;
 	}
+
+	signal(SIGABRT, exit);
+	signal(SIGQUIT, exit);
+	signal(SIGINT, exit);
+	signal(SIGHUP, exit);
+	signal(SIGTERM, exit);
+	
+	core::io.init();
+	core::exec.macroz.init();
+	core::exec.usr << input;
 
 	/* prompt for input */
 	for (;;) {
