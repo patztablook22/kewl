@@ -5,4 +5,4 @@ a linux C++ IRC
 
 # kewld
 
-Kewl daemon [here](https://github.com/patztablook22/kewld).
+Kewl server [here](https://github.com/patztablook22/kewld).
