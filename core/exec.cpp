@@ -56,10 +56,12 @@ size_t exec::interpreter(std::wstring input, std::vector<std::wstring> &trg, siz
 					tmp += L' ';
 				break;
 			case false:
-				trg.push_back(tmp);
-				if (iter > end)
-					return iter;
-				tmp.clear();
+				if (tmp.size() != 0) {
+					trg.push_back(tmp);
+					if (iter > end)
+						return iter;
+					tmp.clear();
+				}
 				break;
 			}
 			break;
@@ -236,7 +238,7 @@ void exec::macroz::init()
 	passwd *pw = getpwuid(getuid());
 	location = pw->pw_dir;
 	location += "/.kewl_macroz";
-	load();;
+	load();
 	if (existz(L"rc"))
 		da_macroz[L"rc"]->do_it();
 }

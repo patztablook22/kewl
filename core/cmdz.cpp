@@ -171,12 +171,24 @@ public:
 	{
 		if (arg.size() != 1)
 			return 2;
-		return core::serv.disconn();
+		try {
+			core::serv << core::io::msg(L"kewl", L"/disconn");
+		} catch (...) {
+			core::io << core::io::msg(L"kewl", L"ERR: no connection alive");
+		}
+		return 0;
 	}
 
 	uint8_t serv(std::vector<std::wstring> arg)
 	{
-		core::io << core::io::msg(L"serv", L"imma shut down...");
+		if (arg.size() == 1)
+			return core::serv.disconn(false);
+		if (arg[1] == L"s")
+			core::io << core::io::msg(L"serv", L"imma shutdown");
+		else if (arg[1] == L"k")
+			core::io << core::io::msg(L"serv", L"u were kicked out :'(");
+		if (arg.size() == 3)
+			core::io << core::io::msg(L"serv", L"@" + core::serv.status.gnick() + L" " + arg[2]);
 		core::io.beep();
 		return core::serv.disconn();
 	}
@@ -239,6 +251,12 @@ public:
 		} else if (arg[1] == L"disconn") {
 			core::serv.status.leave(arg[2]);
 			core::io << core::io::msg(L"serv", arg[2] + L" disconnected");
+		} else if (arg[1] == L"lost") {
+			core::serv.status.leave(arg[2]);
+			core::io << core::io::msg(L"serv", L"connection with " + arg[2] + L" lost");
+		} else if (arg[1] == L"kick") {
+			core::serv.status.leave(arg[2]);
+			core::io << core::io::msg(L"serv", arg[2] + L" was kicked out");
 		}
 		core::io.beep();
 		return 0;
@@ -269,7 +287,6 @@ public:
 		core::io << core::io::msg(L"kewl", L"ping request sent");
 		gettimeofday(&tm, NULL);
 		core::serv << core::io::msg(L"kewl", L"/ping");
-		
 		return 0;
 	}
 
@@ -668,3 +685,70 @@ public:
 	}
 private:
 } macroz;
+
+class servctl: public core::exec::cmd {
+public:
+	servctl()
+	{
+		core::exec.add(L"servctl", {{L"control current server (if u hav permissionz)"}}, this);
+	}
+
+	uint8_t usr(std::vector<std::wstring> arg)
+	{
+		if (arg.size() == 1)
+			return 2;
+		if (!core::serv.status.gactive()) {
+			core::io << core::io::msg(L"kewl", L"ERR: no connection alive");
+			return 1;
+		}
+
+		std::wstring todo(L"/servctl");		
+		for (int i = 1; i < arg.size(); i++) {
+			std::wstring tmp;
+			bool parz = false;
+			for (int j = 0; j < arg[i].size(); j++) {
+				wint_t ch = arg[i][j];
+				switch (ch) {
+				case L'\\':
+					tmp += L"\\\\";
+					break;
+				case L'"':
+					tmp += L"\\\"";
+					break;
+				case L' ':
+					tmp += L' ';
+					parz = true;
+					break;
+				default:
+					tmp += ch;
+					break;
+				}
+			}
+			if (parz)
+				todo += L" \"" + tmp + L'"';
+			else
+				todo += L' ' + tmp;
+			tmp.clear();
+		}
+		if (todo.size() > 255) {
+			core::io << core::io::msg(L"kewl", L"ERR: command too long");
+			return 1;
+		}
+		core::serv << core::io::msg(L"kewl", todo);
+		return 0;
+	}
+
+	void acompl(std::vector<std::wstring> arg, std::vector<std::wstring> &trg)
+	{
+		switch (arg.size()) {
+		case 1:
+			trg = {L"kick", L"omg", L"shutdown"};
+			break;
+		case 2:
+			if (arg[1] == L"kick")
+				core::serv.status.gotherz(trg);
+			break;
+		}
+	}
+
+} servctl;

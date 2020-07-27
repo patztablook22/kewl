@@ -6,6 +6,14 @@ serv::serv()
 	free = true;
 }
 
+serv::~serv()
+{
+	try {
+		*this << core::io::msg(L"kewl", L"/disconn");
+	} catch (...) {}
+	disconn();
+}
+
 void serv::operator<<(core::io::msg todo)
 {
 	if (!todo.gvalid())
@@ -64,7 +72,7 @@ void serv::conn(std::string hostname, std::string port, std::wstring usr)
 	sniffer.detach();
 }
 
-int serv::disconn(bool e = true)
+int serv::disconn(bool e)
 {
 	if (free && e) {
 		core::io << core::io::msg(L"kewl", L"ERR: no connection alive");
@@ -86,15 +94,12 @@ int serv::disconn(bool e = true)
 	core::serv.status.clientz = 0;
 	core::serv.status.name.clear();
 	core::serv.status.nick.clear();
-	if (!e) {
-		core::io << core::io::msg(L"kewl", L"ERR: connection lost");
-	} else {
-		if (boi_msg.size() != 0)
-			core::io << core::io::msg(L"serv", L'@' + tmp_nick + L' ' + boi_msg);
+	if (e) {
 		core::io << core::io::msg(L"kewl", L"connection closed");
+	} else {
+		core::io << core::io::msg(L"kewl", L"ERR: connection lost");
+		core::io.beep();
 	}
-	hoi_msg.clear();
-	boi_msg.clear();
 	free = true;
 	return 0;
 }
@@ -243,15 +248,6 @@ void serv::handler(std::string hostname, std::string port, std::wstring usr)
 		}
 		core::serv.status.name = buf1;
 		core::io.mkwin();
-
-		*this << L"kk";
-		*this >> buf1;
-		hoi_msg = buf1.erase(0, 1);
-		*this << L"kk";
-		*this >> buf1;
-		boi_msg = buf1.erase(0, 1);
-		if (hoi_msg.size() != 0)
-			core::io << core::io::msg(L"serv", L'@' + core::serv.status.nick + L' ' + hoi_msg);
 
 		*this << L"sniffing";
 		core::io::msg buf2;

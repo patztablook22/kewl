@@ -543,8 +543,9 @@ void io::send_passwd()
 {
 	if (i.use_passwd)
 		return;
-	else
 		i.use_passwd = true;
+	i.buf.erase();
+	i.pos = 0;
 	i.draw();
 }
 
@@ -555,18 +556,12 @@ void io::operator>>(std::wstring &trg)
 	else
 		i.use_normal = true;
 	wint_t ch;
-	bool upasswd = false;
 	i.buf.clear();
 	i.pos = 0;
 	bool max = (i.buf.size() > 255);
 
 	for (;;) {
 		get_wch(&ch);
-		if (upasswd != i.use_passwd) {
-			i.buf.clear();
-			i.pos = 0;
-			upasswd = !upasswd;
-		}
 		switch (ch) {
 		case -1:
 		case 0:
@@ -575,7 +570,7 @@ void io::operator>>(std::wstring &trg)
 			exit(1);
 		case 10:
 			// ENTER
-			if (!upasswd) {
+			if (!i.use_passwd) {
 				trg = i.buf;
 				i.hist.buftohist();
 				i.buf.clear();
@@ -589,7 +584,6 @@ void io::operator>>(std::wstring &trg)
 					core::serv << L'|' + sha256(i.buf);
 				} catch (...) {}
 				i.use_passwd = false;
-				upasswd = false;
 				i.buf.clear();
 				i.pos = 0;
 			}
@@ -600,12 +594,12 @@ void io::operator>>(std::wstring &trg)
 			continue;
 		case 258:
 			// KEY_DOWN
-			if (!upasswd)
+			if (!i.use_passwd)
 				i.hist.histtobuf(true);
 			break;
 		case 259:
 			// KEY_UP
-			if (!upasswd)
+			if (!i.use_passwd)
 				i.hist.histtobuf(false);
 			break;
 		case 260:
@@ -653,12 +647,12 @@ void io::operator>>(std::wstring &trg)
 			break;
 		case 21:
 			// CTRL+U
-			if (!upasswd)
+			if (!i.use_passwd)
 				i.clpbrd.cut(true);
 			break;
 		case 23:
 			// CTRL+W
-			if (!upasswd) {
+			if (!i.use_passwd) {
 				i.clpbrd.cut(false);
 				if (i.buf[i.pos] == 32 && i.buf[i.pos - 1] == 32)
 					i.buf.erase(i.pos, 1);
@@ -666,7 +660,7 @@ void io::operator>>(std::wstring &trg)
 			break;
 		case 25:
 			// CTRL+Y
-			if (!upasswd)
+			if (!i.use_passwd)
 				i.clpbrd.paste();
 			break;
 		case 1:
@@ -681,12 +675,12 @@ void io::operator>>(std::wstring &trg)
 			break;
 		case 9:
 			// TAB
-			if (!upasswd)
+			if (!i.use_passwd)
 				i.acompl.get();
 			break;
 		case 32:
 			// SPACE
-			if ((i.pos > 0 && i.buf[i.pos - 1] != 32 && i.buf[i.pos] != 32) || upasswd)
+			if ((i.pos > 0 && i.buf[i.pos - 1] != 32 && i.buf[i.pos] != 32) || i.use_passwd)
 				i.buf.insert(i.pos++, 1, 32);
 			break;
 		default:

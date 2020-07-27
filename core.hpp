@@ -197,7 +197,7 @@ public:
 		cmd *ptr;
 	};
 
-	void add(std::wstring, std::vector<std::vector<std::wstring>>, cmd*);
+	void add(std::wstring, std::vector<std::vector<std::wstring>>, cmd *);
 	
 	class usr {
 	public:
@@ -270,10 +270,10 @@ private:
 
 class serv {
 public:
-	serv();
+	serv(), ~serv();
 	friend void io::operator>>(std::wstring &);
 	void conn(std::string, std::string, std::wstring);
-	int disconn(bool);
+	int disconn(bool = true);
 	void operator<<(core::io::msg);
 
 private:
@@ -288,7 +288,6 @@ private:
 	void certz_echo(SSL *);
 	SSL_CTX *ctx;
 	SSL *ssl;
-	std::wstring hoi_msg, boi_msg;
 	std::thread sniffer;
 	bool free;
 public:
