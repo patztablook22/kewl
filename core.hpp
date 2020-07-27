@@ -2,6 +2,8 @@ namespace core {
 
 /*********************************************************************************************/
 
+
+/*********************************************************************************************/
 class io {
 public:
 	io(), ~io();
@@ -108,6 +110,14 @@ private:
 
 /*********************************************************************************************/
 
+class cfg {
+public:
+private:
+
+} cfg;
+
+/*********************************************************************************************/
+
 class exec {
 public:
 	class cmd {
@@ -118,18 +128,18 @@ public:
 
 	class cmd_handler {
 	public:
-		cmd_handler(std::wstring, std::wstring, cmd *, std::wstring);
-		std::wstring gsyn(), gdesc();
+		cmd_handler(std::vector<std::vector<std::wstring>>, cmd *, std::wstring);
+		void gman(std::vector<std::vector<std::wstring>> &);
 		wint_t gacompl(int);
 		cmd *gptr();
 	private:
-		std::wstring syn, desc;
+		std::vector<std::vector<std::wstring>> man;
 		cmd *ptr;
 		std::wstring acompl;
 	};
 
-	void add(std::wstring, std::wstring, std::wstring, cmd*);
-	void add(std::wstring, std::wstring, std::wstring, cmd *, std::wstring);
+	void add(std::wstring, std::vector<std::vector<std::wstring>>, cmd*);
+	void add(std::wstring, std::vector<std::vector<std::wstring>>, cmd *, std::wstring);
 	
 	class usr {
 	public:
@@ -142,7 +152,7 @@ public:
 	} serv;
 
 	void gcmdz(std::vector<std::wstring> &);
-	std::wstring gsyn(std::wstring), gdesc(std::wstring);
+	void gman(std::wstring, std::vector<std::vector<std::wstring>> &);
 	wint_t gacompl(std::wstring, int);
 	bool iz_cmd(std::wstring);
 private:
@@ -225,6 +235,7 @@ public:
 
 
 #include "core/io.cpp"
+#include "core/cfg.cpp"
 #include "core/exec.cpp"
 #include "core/perform.cpp"
 #include "core/serv.cpp"

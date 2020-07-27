@@ -2,7 +2,7 @@ class quit: public core::exec::cmd {
 public:
 	quit()
 	{
-		core::exec.add(L"quit", L"<null>", L"quit kewl", this);
+		core::exec.add(L"quit", {{L"", L"quit kewl"}}, this);
 	}
 
 	int usr(std::vector<std::wstring> arg)
@@ -17,7 +17,7 @@ class help: public core::exec::cmd {
 public:
 	help()
 	{
-		core::exec.add(L"help", L"[cmd]", L"get some help", this, L"/");
+		core::exec.add(L"help", {{L"", L"get list of cmdz"}, {L"cmd", L"get help 4 da cmd"}}, this, L"/");
 	}
 
 	int usr(std::vector<std::wstring> arg)
@@ -31,7 +31,7 @@ public:
 			if (ipl <= 0)
 				ipl = 1;
 			std::wstring tmp;
-			core::io << core::io::msg(L"kewl", L"HELP:" + std::wstring(L"-------------").substr(0, max_x - 13));
+			core::io << core::io::msg(L"hr", L"");
 			for (int i = 0; i < cmdz.size(); i++) {
 				if (i % ipl) {
 					tmp += std::wstring(16 - cmdz[i - 1].size(), 32);
@@ -42,7 +42,7 @@ public:
 				tmp += cmdz[i];
 			}
 			core::io << core::io::msg(L"kewl", tmp);
-			core::io << core::io::msg(L"kewl", std::wstring(L"------------------").substr(0, max_x - 8));
+			core::io << core::io::msg(L"hr", L"");
 		} else if (arg.size() == 2) {
 			if (arg[1][0] == '/')
 				arg[1].erase(0, 1);
@@ -56,10 +56,15 @@ public:
 				core::io << core::io::msg(L"kewl", L"ERR: no such command: \"" + arg[1] + L"\"");
 				return 1;
 			}
-			core::io << core::io::msg(L"kewl", L"HELP:" + std::wstring(L"-------------").substr(0, max_x - 13));
-			core::io << core::io::msg(L"kewl", L"SYNOPSIS: " + arg[1] + L" " + core::exec.gsyn(arg[1]));
-			core::io << core::io::msg(L"kewl", L"DESCRIPTION: " + core::exec.gdesc(arg[1]));
-			core::io << core::io::msg(L"kewl", std::wstring(L"------------------").substr(0, max_x - 8));
+			core::io << core::io::msg(L"hr", L"");
+			std::vector<std::vector<std::wstring>> man;
+			core::exec.gman(arg[1], man);
+			for (int i = 0; i < man.size(); i++) {
+				for (int j = 0; j < man[i].size(); j++) {
+					core::io << core::io::msg(L"kewl", (j == 0 ?  arg[1] : L"->") + L' ' + man[i][j]);
+				}
+			}
+			core::io << core::io::msg(L"hr", L"");
 		} else {
 			return 2;
 		}
@@ -71,7 +76,7 @@ class cls: public core::exec::cmd {
 public:
 	cls()
 	{
-		core::exec.add(L"cls", L"<null>", L"clear screen", this);
+		core::exec.add(L"cls", {{L"", L"clear screen"}}, this);
 	}
 
 	int usr(std::vector<std::wstring> arg)
@@ -79,7 +84,6 @@ public:
 		if (arg.size() != 1)
 			return 2;
 		core::io.cls();
-		//core::io << core::io::msg(L"kewl", L"da screen has been cleared");
 		return 0;
 	}
 } cls;
@@ -88,7 +92,7 @@ class reset: public core::exec::cmd {
 public:
 	reset()
 	{
-		core::exec.add(L"reset", L"<null>", L"reset output-screen to itz initial state", this);
+		core::exec.add(L"reset", {{L"", L"reset output-screen to itz initial state"}}, this);
 	}
 
 	int usr(std::vector<std::wstring> arg)
@@ -104,7 +108,7 @@ class conn: public core::exec::cmd {
 public:
 	conn()
 	{
-		core::exec.add(L"conn", L"<address>:<port> <nick0>,[...],[nick15]", L"connect to kewl serv", this);
+		core::exec.add(L"conn", {{L"address:port nick0,...,nick15", L"connect to kewl serv"}}, this);
 	}
 
 	int usr(std::vector<std::wstring> arg)
@@ -155,7 +159,7 @@ class disconn: public core::exec::cmd {
 public:
 	disconn()
 	{
-		core::exec.add(L"disconn", L"<null>", L"disconnect from kewl serv", this);
+		core::exec.add(L"disconn", {{L"", L"disconnect from kewl serv"}}, this);
 	}
 
 	int usr(std::vector<std::wstring> arg)
@@ -180,7 +184,7 @@ class usrz: public core::exec::cmd {
 public:
 	usrz()
 	{
-		core::exec.add(L"usrz", L"<null>", L"list all usrz on serv", this);
+		core::exec.add(L"usrz", {{L"", L"print all usrz on serv"}}, this);
 	}
 
 	int usr(std::vector<std::wstring> arg)
@@ -199,7 +203,7 @@ public:
 		std::vector<std::wstring> usrz;
 		core::serv.status.gotherz(usrz);
 		usrz.insert(usrz.begin(), core::serv.status.gnick());
-		core::io << core::io::msg(L"serv", L"USRZ:" + std::wstring(L"-------------").substr(0, max_x - 13));
+		core::io << core::io::msg(L"hr", L"");
 		std::wstring tmp;
 		if (usrz.size() == 0) {
 			core::serv.disconn(false);
@@ -217,7 +221,7 @@ public:
 			tmp += usrz[i];
 		}
 		core::io << core::io::msg(L"serv", tmp);
-		core::io << core::io::msg(L"serv", std::wstring(L"------------------").substr(0, max_x - 8));
+		core::io << core::io::msg(L"hr", L"");
 
 		return 0;
 	}
@@ -243,7 +247,7 @@ public:
 	ping()
 	:in_use(false)
 	{
-		core::exec.add(L"ping", L"<null>", L"get ping on current server", this);
+		core::exec.add(L"ping", {{L"", L"get ping on current server"}}, this);
 	}
 
 	int usr(std::vector<std::wstring> arg)
@@ -289,7 +293,7 @@ class version: public core::exec::cmd {
 public:
 	version()
 	{
-		core::exec.add(L"version", L"<null>", L"print current version", this);
+		core::exec.add(L"version", {{L"", L"print current version"}}, this);
 	}
 
 	int usr(std::vector<std::wstring> arg)
@@ -305,7 +309,7 @@ class about: public core::exec::cmd {
 public:
 	about()
 	{
-		core::exec.add(L"about", L"<null>", L"wtf iz kewl about", this);
+		core::exec.add(L"about", {{L"", L"wtf iz kewl about"}}, this);
 	}
 
 	int usr(std::vector<std::wstring> arg)
@@ -314,11 +318,11 @@ public:
 			return 2;
 		int max_x, max_y;
 		getmaxyx(stdscr, max_y, max_x);
-		core::io << core::io::msg(L"kewl", L"ABOUT:" + std::wstring(L"------------").substr(0, max_x - 14));
+		core::io << core::io::msg(L"hr", L"");
 		core::io << core::io::msg(L"kewl", L"Konverzace Everybody Will Like client");
 		core::io << core::io::msg(L"kewl", L"C++ IRC with SSL encryption");
 		core::io << core::io::msg(L"kewl", L"\"lol imma waste my time\" ~ patz, d6022");
-		core::io << core::io::msg(L"kewl", std::wstring(L"------------------").substr(0, max_x - 8));
+		core::io << core::io::msg(L"hr", L"");
 		return 0;
 	}
 } about;
@@ -327,7 +331,7 @@ class beep: public core::exec::cmd {
 public:
 	beep()
 	{
-		core::exec.add(L"beep", L"<{test,on,off,set delay_in_ms}>", L"test / turn on/off / set delay of beep", this);
+		core::exec.add(L"beep", {{L"test", L"test da beep"}, {L"on/off", L"turn da beep on/off"}, {L"set delay_in_ms", L"set minimal delay between 2 beepz"}}, this);
 	}
 
 	int usr(std::vector<std::wstring> arg)
@@ -373,7 +377,7 @@ public:
 				return 1;
 			}
 			core::io.beep_sdelay(tmp);
-			core::io << core::io::msg(L"kewl", L"beep set to " + arg[2] + L"ms");
+			core::io << core::io::msg(L"kewl", L"beep delay set to " + arg[2] + L"ms");
 		} else {
 			return 2;
 		}
@@ -381,3 +385,19 @@ public:
 		return 0;
 	}
 } beep;
+
+class hr: public core::exec::cmd {
+public:
+	hr()
+	{
+		core::exec.add(L"hr", {{L"", L"print horizontal line (only if da last msg iz not hr too)"}}, this);
+	}
+
+	int usr(std::vector<std::wstring> arg)
+	{
+		if (arg.size() != 1)
+			return 2;
+		core::io << core::io::msg(L"hr", L"");
+		return 0;
+	}
+} hr;

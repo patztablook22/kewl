@@ -17,22 +17,16 @@ std::vector<std::wstring> exec::interpreter(std::wstring input)
 	return result;
 }
 
-exec::cmd_handler::cmd_handler(std::wstring da_syn, std::wstring da_desc, cmd *da_ptr, std::wstring da_acompl)
+exec::cmd_handler::cmd_handler(std::vector<std::vector<std::wstring>> da_man, cmd *da_ptr, std::wstring da_acompl)
 {
-	syn = da_syn;
-	desc = da_desc;
+	man = da_man;
 	ptr = da_ptr;
 	acompl = da_acompl;
 }
 
-std::wstring exec::cmd_handler::gsyn()
+void exec::cmd_handler::gman(std::vector<std::vector<std::wstring>> &trg)
 {
-	return syn;
-}
-
-std::wstring exec::cmd_handler::gdesc()
-{
-	return desc;
+	trg = man;
 }
 
 wint_t exec::cmd_handler::gacompl(int pos)
@@ -49,19 +43,19 @@ exec::cmd *exec::cmd_handler::gptr()
 	return ptr;
 }
 
-void exec::add(std::wstring name, std::wstring da_syn, std::wstring da_desc, cmd *da_ptr)
+void exec::add(std::wstring name, std::vector<std::vector<std::wstring>> da_man, cmd *da_ptr)
 {
-	add(name, da_syn, da_desc, da_ptr, L"");
+	add(name, da_man, da_ptr, L"");
 }
 
-void exec::add(std::wstring name, std::wstring da_syn, std::wstring da_desc, cmd *da_ptr, std::wstring da_acompl)
+void exec::add(std::wstring name, std::vector<std::vector<std::wstring>> da_man, cmd *da_ptr, std::wstring da_acompl)
 {
-	if (cmdz.find(name) != cmdz.end() || name.size() < 3 || name.size() > 10 || !core::io.iz_k(name))
+	if (cmdz.find(name) != cmdz.end() || name.size() < 2 || name.size() > 10 || !core::io.iz_k(name))
 		return;
 	if (name.find('/') != std::wstring::npos)
 		return;
 	try {
-			cmdz[name] = new cmd_handler(da_syn, da_desc, da_ptr, da_acompl);
+			cmdz[name] = new cmd_handler(da_man, da_ptr, da_acompl);
 	} catch (std::bad_alloc) {
 		exit(EXIT_FAILURE);
 	}
@@ -74,14 +68,9 @@ void exec::gcmdz(std::vector<std::wstring> &output)
 		output.push_back(handler.first);
 }
 
-std::wstring exec::gsyn(std::wstring da_cmd)
+void exec::gman(std::wstring da_cmd, std::vector<std::vector<std::wstring>> &trg)
 {
-	return cmdz[da_cmd]->gsyn();
-}
-
-std::wstring exec::gdesc(std::wstring da_cmd)
-{
-	return cmdz[da_cmd]->gdesc();
+	cmdz[da_cmd]->gman(trg);
 }
 
 wint_t exec::gacompl(std::wstring da_cmd, int pos)

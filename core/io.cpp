@@ -19,10 +19,16 @@ void io::init()
 	init_pair(10, COLOR_CYAN, COLOR_BLACK);		// <kewl> color
 	init_pair(11, COLOR_BLUE, COLOR_BLACK);		// <serv> color
 	init_pair(12, COLOR_WHITE, COLOR_BLACK);	// <someone> color
+	init_pair(13, COLOR_WHITE, COLOR_BLACK);	// hr color
 	init_pair(20, COLOR_WHITE, COLOR_BLUE);		// interface base color
 	init_pair(21, COLOR_CYAN, COLOR_BLUE);		// interface decor color
 
-	gettimeofday(&beep_tm, NULL);
+	if (!has_colors())
+		core::io << core::io::msg(L"kewl", L"WARN: ur terminal does not support colorz");
+	
+	beep_tm.tv_sec = 0;
+	beep_tm.tv_usec = 0;
+
 	mkwin();
 }
 
@@ -91,6 +97,17 @@ io::msg::msg(std::wstring da_from, std::wstring da_body)
 void io::msg::set(std::wstring da_from, std::wstring da_body)
 {
 	valid = false;
+	if (da_from == L"hr") 
+	{
+		from = L"hr";
+		body = L"";
+		col0 = 0;
+		col1 = 0;
+		w0 = 0;
+		valid = true;
+		return;
+	}
+
 	if (da_from != std::wstring(L"kewl") && da_from != std::wstring(L"serv"))
 		da_body = core::io.trim(da_body);
 	if (da_from.size() > 15 || da_from.size() < 3 || da_body.size() == 0 || da_body.size() > 255)
@@ -502,6 +519,17 @@ void io::operator<<(msg da_msg)
 	getmaxyx(stdscr, max_y, max_x);
 	if (!da_msg.gvalid())
 		return;
+	if (o.len > 0) {
+		if (da_msg.gfrom() == L"hr" && o.msgz[0].gfrom() == L"hr") {
+			if (o.pos2 == -1) {
+				if (o.pos0 == -1)
+					o.pos0 = 0;
+				o.pos2 = 0;
+				mkwin();
+			}
+			return;
+		}
+	}
 	tmp_lcount = -o.pos1;
 	for (i = o.pos0; i >= 0 && tmp_lcount < max_y - 3 && i < o.len; i--)
 		tmp_lcount += o.glinez(i, max_x, max_y);
@@ -625,6 +653,8 @@ int io::o::gpos1()
 
 int io::o::glinez(int id, int max_x, int max_y)
 {
+	if (msgz[id].gfrom() == L"hr")
+		return 1;
 	int l = 0, rest = msgz[id].gfrom().size() + msgz[id].gbody().size();
 	while (rest > 0) {
 		rest -= max_x - 4;
@@ -640,6 +670,13 @@ std::wstring io::o::gtitle()
 
 void io::o::echo(int id, int max_x, int max_y, int omit0, int omit1)
 {
+	if (msgz[id].gfrom() == L"hr") {
+			printw("\n ");
+			attron(COLOR_PAIR(13));
+			addwstr(std::wstring(max_x - 2, L'=').c_str());
+			attroff(COLOR_PAIR(13));
+		return;
+	}
 	int tmp_pos, ltotal = glinez(id, max_x, max_y), lcount = 0, tmp_begin, tmp_inc;
 	std::wstring tmp_from(L"<");
 	tmp_from += msgz[id].gfrom();
