@@ -114,6 +114,7 @@ public:
 		if (arg.size() != 1)
 			return 1;
 		core::io.da_erase();
+		core::io.mkwin();
 		return 0;
 	}
 } erase;
@@ -122,7 +123,7 @@ class reset: public core::exec::cmd {
 public:
 	reset()
 	{
-		core::exec.add(L"reset", {{L"", L"reset IO screen"}}, this);
+		core::exec.add(L"reset", {{L"", L"reset ui"}}, this);
 	}
 
 	uint8_t usr(std::vector<std::wstring> arg)
@@ -139,31 +140,39 @@ class conn: public core::exec::cmd {
 public:
 	conn()
 	{
-		core::exec.add(L"conn", {{L"address:port nick", L"connect 2 kewl serv"}}, this);
+		core::exec.add(L"conn", {{L"address:port nick", L"connect 2 kewl serv", L"using port 12204, if not specified", L"using ur usrname, if not specified"}}, this);
 	}
 
 	uint8_t usr(std::vector<std::wstring> arg)
 	{
-		if (arg.size() < 3)
-			return 2;
+		if (arg.size() < 2)
+			return 1;
 		else if (arg.size() > 3)
 			return 3;
 		int pos = arg[1].find_last_of(':');
-		if (pos == std::wstring::npos || pos == 0 || pos == arg[1].size() - 1)
+		if (pos == 0 || pos == arg[1].size() - 1)
 			return 1;
-		std::string hostname(arg[1].begin(), arg[1].begin() + pos);
-		
-		int port = 0;
-		try {
-			port = std::stoi(arg[1].substr(pos + 1, arg[1].size() - pos - 1));
-		} catch (std::invalid_argument) {
-			return 1;
+		uint16_t port = 0;
+		if (pos != std::wstring::npos) {
+			try {
+				port = std::stoi(arg[1].substr(pos + 1, arg[1].size() - pos - 1));
+			} catch (std::invalid_argument) {
+				return 1;
+			}
+			if (std::to_wstring(port) != arg[1].substr(pos + 1, arg[1].size() - pos - 1))
+				return 1;
+			if (port < 1 || port > 65535)
+				return 1;
+		} else {
+			pos = arg[1].size();
 		}
-		if (arg[1].substr(pos + 1, arg[1].size() - pos - 1) !=  std::to_wstring(port))
-			return 1;
-		if (port <= 0 || port > 65535)
-			return 1;
-		core::serv.conn(hostname, std::to_string(port), arg[2]);
+		std::wstring da_hostname = arg[1].substr(0, pos);
+		std::string hostname(da_hostname.begin(), da_hostname.end());
+		std::wstring usr;
+		if (arg.size() == 3) {
+			usr = arg[2];
+		}
+		core::serv.conn(hostname, port, usr);
 		return 0;
 	}
 } conn;
@@ -180,9 +189,9 @@ public:
 		if (arg.size() != 1)
 			return 1;
 		try {
-			core::serv << core::io::msg(L"kewl", L"/disconn");
+			core::serv.snd(L"/disconn");
 		} catch (...) {
-			core::io << core::io::msg(L"kewl", L"ERR: no connection alive");
+			core::serv.disconn();
 		}
 		return 0;
 	}
@@ -268,7 +277,7 @@ public:
 				core::io << core::io::msg(L"kewl", L"ERR: no connection alive");
 				return -1;
 			}
-			core::serv << core::io::msg(L"kewl", L"/whoiz \"" + arg[2] + L'"');
+			core::serv.snd(L"/whoiz \"" + arg[2] + L'"');
 		} else if (arg[1] == L"ignore") {
 			if (arg.size() < 3)
 				return 2;
@@ -332,7 +341,7 @@ public:
 				return -1;
 			}
 			try {
-				core::serv << core::io::msg(L"kewl", L"/register");
+				core::serv.snd(L"/register");
 				core::io << core::io::msg(L"kewl", L"registration request sent");
 			} catch (...) {}
 		} else if (arg[1] == L"chpasswd") {
@@ -343,7 +352,7 @@ public:
 				return -1;
 			}
 			try {
-				core::serv << core::io::msg(L"kewl", L"/chpasswd");
+				core::serv.snd( L"/chpasswd");
 				core::io << core::io::msg(L"kewl", L"passwd change request sent");
 			} catch (...) {}
 		} else {
@@ -420,7 +429,7 @@ public:
 					int tmp = std::stoi(arg[4]);
 					if (tmp < 0 || tmp > 2)
 						return 2;
-					core::serv << core::io::msg(L"kewl", L"/omg_f5");
+					core::serv.snd(L"/omg_f5");
 					core::serv.status.chomg(arg[3][0], tmp);
 				} catch (...) {
 					return 1;
@@ -458,47 +467,69 @@ public:
 class ping: public core::exec::cmd {
 public:
 	ping()
-	:in_use(false)
 	{
-		core::exec.add(L"ping", {{L"", L"get ping on current server"}}, this);
+		core::exec.add(L"ping", {{L"no_of_triez", L"4 by default, between 1 and 64", L"get ping on current server"}, {L"cancel", L"cancel pinging process"}}, this);
 	}
 
 	uint8_t usr(std::vector<std::wstring> arg)
 	{
-		if (arg.size() != 1)
-			return 1;
-		if (!core::serv.status.gactive()) {
+		if (arg.size() > 2)
+			return 2;
+		uint8_t n = 4;
+		if (arg.size() == 2) {
+			if (arg[1] == L"cancel") {
+				if (core::serv.ping.cancel() != 0) {
+					core::io << core::io::msg(L"kewl", L"ERR: not pinging");
+					return -1;
+				}
+				return 0;				
+			}
+			try {
+				n = std::stoi(arg[1]);
+			} catch (std::invalid_argument) {
+				return 1;
+			}
+			if (std::to_wstring(n) != arg[1])
+				return 1;
+		}
+		switch (core::serv.ping.do_it(n)) {
+		case 0:
+			break;
+		case 1:
 			core::io << core::io::msg(L"kewl", L"ERR: no connection alive");
 			return -1;
-		}
-		if (in_use) {
-			core::io << core::io::msg(L"kewl", L"ERR: ping request already sent");
+		case 2:
+			core::io << core::io::msg(L"kewl", L"ERR: must be between 1 and 64");
+			return -1;
+		case 3:
+			core::io << core::io::msg(L"kewl", L"WARN: already pinging");
 			return -1;
 		}
-		in_use = true;
-		core::io << core::io::msg(L"kewl", L"ping request sent");
-		gettimeofday(&tm, NULL);
-		core::serv << core::io::msg(L"kewl", L"/ping");
 		return 0;
 	}
 
 	uint8_t serv(std::vector<std::wstring> arg)
 	{
-		timeval tmp;
-		gettimeofday(&tmp, NULL);
-		double ms = 1000000 * (tmp.tv_sec - tm.tv_sec) + tmp.tv_usec - tm.tv_usec;
-		ms /= 1000;
-		int round0 = (ms - (int)ms) * 100;
-		if (round0 % 10 >= 5)
-			round0 += 10;
-		round0 /= 10;
-		core::io << core::io::msg(L"kewl", L"ping-back received; time ~ \\1" + std::to_wstring((int)ms) + L'.' + std::to_wstring(round0) + L"ms");
-		in_use = false;
+		if (arg.size() != 3)
+			return 2;
+		uint8_t tmp;
+		try {
+			tmp = std::stoi(arg[2]);
+		} catch (std::invalid_argument) {
+			return 2;
+		}
+		if (std::to_wstring(tmp) != arg[2])
+			return 2;
+		core::serv.ping.recv(tmp);
 		return 0;
 	}
-private:
-	timeval tm;
-	bool in_use;
+
+	void acompl(std::vector<std::wstring> arg, std::vector<std::wstring> &trg)
+	{
+		if (arg.size() != 1)
+			return;
+		trg = {L"4", L"cancel"};
+	}
 } ping;
 
 class version: public core::exec::cmd {
@@ -512,11 +543,11 @@ public:
 	{
 		if (arg.size() != 1)
 			return 1;
-		core::io << core::io::msg(L"kewl", L"current version: \\1" + core::io.ver_echo(VERSION));
+		core::io << core::io::msg(L"kewl", L"current version | \\1" + core::io.ver_echo(VERSION));
 		std::string tmp(__DATE__);
 		tmp += ' ';
 		tmp += __TIME__;
-		core::io << core::io::msg(L"kewl", L"compiled on: \\1" + std::wstring(tmp.begin(), tmp.end()));
+		core::io << core::io::msg(L"kewl", L"    compiled on | \\1" + std::wstring(tmp.begin(), tmp.end()));
 		
 		return 0;
 	}
@@ -630,6 +661,30 @@ public:
 
 class ui: public core::exec::cmd {
 private:
+	std::wstring property_query(std::wstring name)
+	{
+		int pos = name.find(L'_');
+		if (pos == std::wstring::npos || pos == 0 || pos == name.size() - 1)
+			return L"";
+		std::wstring type = name.substr(0, pos);
+		if (type == L"attr") {
+			std::vector<std::wstring> res;
+			core::io.ui.gattrz(name, res);
+			if (res.size() != 3)
+				return L"???";
+			return L'"' + res[0] + L"\", \"" + res[1] + L"\", \"" + res[2] + L'"';
+		} else if (type == L"txt") {
+			return L'"' + core::io.ui.gstr(name) + L'"';
+		} else if (type == L"char") {
+			return L'"' + std::wstring(1, core::io.ui.gchar(name)) + L'"';
+		} else if (type == L"int") {
+			return std::to_wstring(core::io.ui.gint(name));
+		} else if (type == L"bool") {
+			return core::io.ui.gtru(name) ? L"TRU" : L"FALZ";
+		}
+		return L"";
+	}
+
 	uint8_t set(std::vector<std::wstring> wut)
 	{
 		if (wut.size() == 0)
@@ -854,7 +909,22 @@ public:
 				return 3;
 			std::vector<std::wstring> tmp;
 			if (arg[2] == L"propertiez") {
+				int max_x, max_y;
+				getmaxyx(stdscr, max_y, max_x);
+				max_y = core::io.ui.gint(L"int_usr_max_padding");
+				max_x -= (max_y > 4 ? max_y : 4);
+				max_x -= 1 + (core::io.ui.gtru(L"bool_show_time") ? 5 + core::io.ui.gstr(L"txt_time_before").size() + core::io.ui.gstr(L"txt_time_after").size() : 0) + core::io.ui.gstr(L"txt_usr_before").size() + core::io.ui.gstr(L"txt_usr_after").size();
 				core::io.ui.gpropertiez(tmp);
+				if (max_x > 58) {
+					int longest = 0;
+					for (int i = 0; i < tmp.size(); i++) {
+						if (tmp[i].size() > longest)
+							longest = tmp[i].size();
+					}
+					longest += 3;
+					for (int i = 0; i < tmp.size(); i++)
+						tmp[i] += (std::wstring(longest - tmp[i].size(), 32) + L"\\5" + property_query(tmp[i]));
+				}
 			} else if (arg[2] == L"colorz") {
 				core::io.ui.gcolorz(tmp);
 			} else if (arg[2] == L"weightz") {
@@ -991,7 +1061,7 @@ public:
 		}
 
 		try {
-			core::serv << core::io::msg(L"kewl", L'/' + todo);
+			core::serv.snd(L'/' + todo);
 		} catch (...) {}
 		return 0;
 	}
@@ -1018,3 +1088,19 @@ public:
 	}
 
 } servctl;
+
+class redraw: public core::exec::cmd {
+public:
+	redraw()
+	{
+		core::exec.add(L"redraw", {{L"", L"redraw ui"}}, this);
+	}
+
+	uint8_t usr(std::vector<std::wstring> arg)
+	{
+		if (arg.size() > 1)
+			return 1;
+		core::io.mkwin();
+		return 0;
+	}
+} redraw;

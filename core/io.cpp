@@ -43,7 +43,7 @@ void io::ui::init()
 	new property0(L"body_hl_2", {L"wheit", L"term_default", L"bold"});
 	new property0(L"body_hl_3", {L"wheit", L"term_default", L"bold"});
 	new property0(L"body_hl_4", {L"wheit", L"term_default", L"bold"});
-	new property0(L"body_hl_5", {L"wheit", L"term_default", L"bold"});
+	new property0(L"body_hl_5", {L"wheit", L"term_default", L"italic"});
 	new property0(L"body_hl_6", {L"wheit", L"term_default", L"bold"});
 	new property0(L"body_hl_7", {L"wheit", L"term_default", L"bold"});
 	new property0(L"body_hl_err", {L"wheit", L"term_default", L"bold"});
@@ -81,7 +81,6 @@ uint8_t io::ui::set(std::wstring name, std::vector<std::wstring> da_valz)
 {
 	if (propertiez0.find(name) == propertiez0.end())
 		return 1;
-
 	return propertiez0[name]->svalz(da_valz);
 }
 
@@ -101,8 +100,8 @@ uint8_t io::ui::def_col(std::wstring name, std::vector<unsigned int> da_val)
 	if (colorz.find(name) == colorz.end()) {
 		if (colorz.size() > COLORS)
 			return 1;
-		init_color(colorz.size(), da_val[0], da_val[1], da_val[2]);
-		colorz[name] = colorz.size();
+		init_color(COLORS - colorz.size(), da_val[0], da_val[1], da_val[2]);
+		colorz[name] = COLORS - colorz.size();
 	} else {
 		if (init_color(colorz[name], da_val[0], da_val[1], da_val[2]) == ERR)
 			return -1;
@@ -190,7 +189,7 @@ io::ui::property0::property0(std::wstring name, std::vector<std::wstring> da_def
 	defaultz[2] = core::io.ui.weightz[da_defaultz[2]];
 
 	core::io.ui.propertiez0[L"attr_" + name] = this;
-	id = core::io.ui.propertiez0.size();
+	id = COLORS - core::io.ui.propertiez0.size();
 	svalz(da_defaultz);
 }
 
@@ -214,7 +213,6 @@ uint8_t io::ui::property0::svalz(std::vector<std::wstring> da_valz)
 	for (int i = 0; i < 3; i++)
 		valz[i] = new_valz[i];
 	init_pair(id, valz[0], valz[1]);
-	core::io.mkwin();
 	return sacv ? -1 : 0;
 }
 
@@ -224,6 +222,11 @@ void io::ui::property0::reset()
 		valz[i] = defaultz[i];
 	init_pair(id, valz[0], valz[1]);
 	core::io.mkwin();
+}
+
+void io::ui::property0::gvalz(std::vector<unsigned int> &trg)
+{
+	trg = {valz[0], valz[1], valz[2]};
 }
 
 void io::ui::property0::on()
@@ -267,6 +270,31 @@ std::wstring io::ui::grange(std::wstring name)
 	else if (propertiez3.find(name) != propertiez3.end())
 		return propertiez3[name]->grange();
 	return L"";
+}
+
+void io::ui::gattrz(std::wstring name, std::vector<std::wstring> &trg)
+{
+	trg.clear();
+	if (propertiez0.find(name) == propertiez0.end())
+		return;
+	trg.push_back(L"");
+	trg.push_back(L"");
+	trg.push_back(L"");
+	std::vector<unsigned int> tmp;
+	propertiez0[name]->gvalz(tmp);
+	for (const std::pair<std::wstring, unsigned int> &col: colorz) {
+		if (col.second == tmp[0])
+			trg[0] = col.first;
+		if (col.second == tmp[1])
+			trg[1] = col.first;
+	}
+
+	for (const std::pair<std::wstring, unsigned int> &weight: weightz) {
+		if (weight.second == tmp[2]) {
+			trg[2] = weight.first;
+			break;
+		}
+	}
 }
 
 int io::ui::gint(std::wstring name)
@@ -318,7 +346,6 @@ uint8_t io::ui::property1::sval(std::wstring da_val)
 	if (da_val == val)
 		sacv = true;
 	val = da_val;
-	core::io.mkwin();
 	return sacv ? -1 : 0;
 }
 
@@ -351,17 +378,17 @@ io::ui::property2::property2(std::wstring name, wint_t ddd)
 	core::io.ui.propertiez2[L"char_" + name] = this;
 }
 
-void io::ui::echo(std::wstring name, unsigned int n)
+wint_t io::ui::gchar(std::wstring name)
 {
 	if (propertiez2.find(name) == propertiez2.end())
-		return;
-	propertiez2[name]->echo(n);
+		return 0;
+	return propertiez2[name]->gval();
 }
 
-void io::ui::property2::echo(unsigned int n)
+wint_t io::ui::property2::gval()
 {
-	addwstr(std::wstring(n, val).c_str());
-}
+	return val;
+}	
 
 uint8_t io::ui::set(std::wstring name, wint_t da_val)
 {
@@ -378,7 +405,6 @@ uint8_t io::ui::property2::sval(wint_t da_val)
 	if (da_val == val)
 		sacv = true;
 	val = da_val;
-	core::io.mkwin();
 	return sacv ? -1 : 0;
 }
 
@@ -419,7 +445,6 @@ uint8_t io::ui::property3::sval(int da_val)
 	if (da_val == val)
 		sacv = true;
 	val = da_val;
-	core::io.mkwin();
 	return sacv ? -1 : 0;
 }
 
@@ -471,7 +496,6 @@ uint8_t io::ui::property4::sval(std::wstring da_val)
 	if (tmp == val)
 		sacv = true;
 	val = tmp;
-	core::io.mkwin();
 	return sacv ? -1 : 0;
 }
 
@@ -497,12 +521,12 @@ bool io::ui::existz(std::wstring name)
 }
 
 io::io()
-:beep_on(true), beep_delay(667), ascii(false)
+:beep_on(true), beep_delay(667), ascii(false), iz_ready(false)
 {
 	std::locale::global(std::locale("en_US.UTF-8"));
 }
 
-void io::init(bool init_ui)
+void io::init(bool init_ui = true)
 {
 	if (!isatty(STDIN_FILENO)) {
 		std::wcerr << L"ERR: failed to read stdin" << std::endl;
@@ -528,7 +552,8 @@ void io::init(bool init_ui)
 
 	if (init_ui)
 		da_erase();
-	mkwin();
+	if (!init_ui)
+		mkwin();
 }
 
 void io::sascii()
@@ -540,6 +565,7 @@ io::~io()
 {
 	for (int i = 0; i < 8; i++)
 		init_color(i, default_contentz[i][0], default_contentz[i][1], default_contentz[i][2]);
+	standend();
 	endwin();
 }
 
@@ -615,6 +641,7 @@ io::msg::msg()
 }
 
 io::msg::msg(std::wstring da_from, std::wstring da_body)
+:valid(false)
 {
 	set(da_from, da_body);
 }
@@ -648,13 +675,15 @@ void io::msg::set(std::wstring da_from, std::wstring da_body)
 		switch (da_body[i]) {
 		case L'\\':
 			i++;
-			if (da_body[i] == L'\\' || da_body[i] == L'"') {
+			if (da_body[i] == L'\\' || da_body[i] == L'"' || da_body[i] == L'/') {
 				body += L'\\';
-				body += da_body[i];
+				last = da_body[i];
+				body += last;
 				len++;
 			} else if (!otherz) {
 				body += '\\';
-				body += da_body[i];
+				last = da_body[i];
+				body += last;
 			}
 			break;
 		default:
@@ -757,6 +786,11 @@ void io::send_passwd()
 	i.draw();
 }
 
+void io::ready()
+{
+	iz_ready = true;
+}
+
 void io::operator>>(std::wstring &trg)
 {
 	if (i.use_normal)
@@ -831,6 +865,11 @@ void io::operator>>(std::wstring &trg)
 		case 262:
 			// HOME
 			o.jump(false);
+			break;
+		case KEY_F(1):
+			// F1
+			if (!i.use_passwd)
+				i.help();
 			break;
 		case 263:
 		case 127:
@@ -941,10 +980,22 @@ void io::i::_draw(int max_x, int max_y)
 	if (!use_passwd)
 		addwstr(buf.substr(begin, max_x - prompt.substr(0, max_x).size()).c_str());
 	else
-		core::io.ui.echo(L"char_passwd_input", buf.substr(begin, max_x - prompt.substr(0, max_x).size()).size());
+		addwstr(std::wstring(buf.substr(begin, max_x - prompt.substr(0, max_x).size()).size(), core::io.ui.gchar(L"char_passwd_input")).c_str());
 	core::io.ui.off();
 	move(max_y - 1, pos - begin + prompt.substr(0, max_x).size());
 	refresh();
+}
+
+void io::i::help()
+{
+	if (buf.size() < 2 || buf[0] != L'/')
+		return;
+	std::wstring tmp(buf.begin() + 1, buf.end());
+	std::vector<std::wstring> arg;
+	core::exec.interpreter(tmp, arg);
+	if (arg[0].size() < 2 || arg[0].size() > 15 || arg[0][0] == L'_')
+		return;
+	core::exec.usr << L"help \"" + arg[0] + L'"';
 }
 
 io::i::acompl::acompl()
@@ -1097,6 +1148,11 @@ void io::i::clpbrd::paste()
 	core::io.i.pos += buf.size();
 }
 
+io::i::hist::hist()
+:len(1)
+{
+}
+
 void io::i::hist::prepare()
 {
 	if (da_hist.size() == 0)
@@ -1154,25 +1210,31 @@ void io::operator<<(msg da_msg)
 		tmp_lcount += o.glinez(i, max_x, max_y);
 	tmp_omit = tmp_lcount - max_y + 3;
 
-	if (o.msgz.size() + 1 > core::io.ui.gint(L"int_output_scrollbucc"))
+	if (o.msgz.size() + 1 > core::io.ui.gint(L"int_output_scrollbucc")) {
 		o.msgz.erase(o.msgz.begin(), o.msgz.end() + 1 - core::io.ui.gint(L"int_output_scrollbucc"));
+		if (o.pos0 != -2 || o.pos1 != 0) {
+			if (o.pos0 > 0)
+				o.pos0--;
+			else
+				o.pos1 = 0;
+			if (o.pos2 > 0)
+				o.pos2--;
+		}
+	}
 	
 	o.msgz.push_back(da_msg);
-	if (o.pos0 != -2 || o.pos1 != 0) {
-		if (o.msgz.size() > core::io.ui.gint(L"int_output_scrollbucc"))
-			o.pos1 = 0;
-	}
 	o.new_msg = true;
 	
 	tmp_lcount = -o.pos1;
 	for (j = o.pos0; j >= 0 && j < o.msgz.size() && tmp_lcount < max_y - 3; j++)
 		tmp_lcount += o.glinez(j, max_x, max_y);
 	
-	 if ((tmp_omit < 0 || (tmp_omit == 0 && i == o.msgz.size() - 1)) && tmp_lcount - max_y + 3 >= 0) {
+	if ((tmp_omit < 0 || (tmp_omit == 0 && i == o.msgz.size() - 1)) && tmp_lcount - max_y + 3 >= 0) {
 		o.pos0 = -2;
 		o.pos1 = 0;
 	}
-	mkwin();
+	if (iz_ready)
+		mkwin();
 }
 
 void io::cls()
@@ -1284,6 +1346,7 @@ void io::stfu::toggle()
 }
 
 io::o::o()
+:new_msg(false)
 {
 	title = L"kewl [";
 	title += core::io.ver_echo(VERSION);
@@ -1347,7 +1410,7 @@ void io::o::echo(int id, int max_x, int max_y, int omit0, int omit1)
 	if (msgz[id].gfrom() == L"hr") {
 		printw("\n ");
 		core::io.ui.on(L"attr_hr");
-		core::io.ui.echo(L"char_hr", max_x - 2);
+		addwstr(std::wstring(max_x - 2, core::io.ui.gchar(L"char_hr")).c_str());
 		core::io.ui.off();
 		return;
 	}
@@ -1463,6 +1526,7 @@ void io::o::echo(int id, int max_x, int max_y, int omit0, int omit1)
 				break;
 			case L'\\':
 			case L'"':
+			case L'/':
 				tmp_pos++;
 				buf += msgz[id].gbody()[i];
 				break;

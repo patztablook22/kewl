@@ -26,7 +26,10 @@ size_t exec::interpreter(std::wstring input, std::vector<std::wstring> &trg, siz
 				tmp += L'"';
 				break;
 			case L'\'':
-				tmp+= L'\'';
+				tmp += L'\'';
+				break;
+			case L'/':
+				tmp += L'/';
 				break;
 			default:
 				break;
@@ -76,7 +79,7 @@ size_t exec::interpreter(std::wstring input, std::vector<std::wstring> &trg, siz
 	return iter;
 }
 
-size_t exec::escape(std::vector<std::wstring> arg, std::wstring &trg, size_t end)
+size_t exec::escape(std::vector<std::wstring> arg, std::wstring &trg, size_t end = -1)
 {
 	trg.clear();
 	for (int i = 0; i <= (end < arg.size() - 1 ? end : arg.size() - 1); i++) {
@@ -91,8 +94,13 @@ size_t exec::escape(std::vector<std::wstring> arg, std::wstring &trg, size_t end
 			case L'"':
 				tmp += L"\\\"";
 				break;
+			case L'/':
+				tmp += L"\\/";
+				break;
 			case 32:
+				tmp += L' ';
 				parz = true;
+				break;
 			default:
 				tmp += ch;
 				break;
@@ -286,7 +294,8 @@ void exec::macroz::init()
 	location = pw->pw_dir;
 	location += "/.kewl_macroz";
 	load();
-	if (existz(L"rc"))
+	core::io.ready();
+	if (da_macroz.find(L"rc") != da_macroz.end())
 		da_macroz[L"rc"]->do_it();
 }
 

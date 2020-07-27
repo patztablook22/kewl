@@ -4,7 +4,7 @@
  * "lol imma waste my time" ~ patz, d6022
  */
 
-#define VERSION 98	// editing diz may cause unexpected behaviour
+#define VERSION 99	// editing diz may cause unexpected behaviour
 
 // needed libz:
 // #include "libz/ur_package_manager.hpp"
@@ -49,19 +49,24 @@ int main(int argc, const char *argv[])
 	
 	core::io.init();
 	core::exec.macroz.init();
+	core::io.mkwin();
 	core::exec.usr << input;
 
 	/* prompt for input */
 	for (;;) {
 		core::io >> input;
+		if (input.size() == 0)
+			continue;
 		if (core::io.trim(input)[0] == '/')
 			core::exec.usr << input.substr(1, input.size() - 1);
-		else
+		else if (core::serv.status.gactive())
 			try {
-				core::serv << core::io::msg(core::serv.status.gnick(), input);
+				core::serv.snd(input);
 			} catch (int) {
 				core::serv.disconn(false);
 			}
+		else
+			core::io << core::io::msg(L"kewl", L"ERR: u cannot write txt @time");
 	}
 	return 0;
 }

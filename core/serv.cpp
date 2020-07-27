@@ -12,16 +12,18 @@ serv::~serv()
 	if (!status.gactive())
 		return;
 	try {
-		*this << core::io::msg(L"kewl", L"/disconn");
-		disconn();
+		snd(L"/disconn");
+		disconn(true);
 	} catch (...) {}
 }
 
-void serv::operator<<(core::io::msg todo)
+void serv::snd(std::wstring msg)
 {
-	if (!todo.gvalid())
+	if (msg.size() == 0 || msg.size() > 255 || !core::io.iz_k(msg))
 		return;
-	*this << todo.gfrom() + L' ' + todo.gbody();
+	if (!core::serv.status.gactive())
+		throw 1;
+	*this << msg;
 }
 
 void serv::operator<<(std::wstring todo)
@@ -42,8 +44,17 @@ void serv::operator<<(int todo)
 		throw 1;
 }
 
-void serv::conn(std::string hostname, std::string port, std::wstring usr)
+void serv::conn(std::string hostname, uint16_t port, std::wstring usr)
 {
+	if (port == 0)
+		port = 12204;
+	if (usr.size() == 0) {
+		std::string tmp(getlogin());
+		usr = std::wstring(tmp.begin(), tmp.end());
+		core::io << core::io::msg(L"kewl", L"found ur niccname (\\3" + usr + L"\\0)");
+	}
+	if (port < 1 || port > 65535)
+		return;
 	if (!core::io.iz_k(usr))
 		return;
 	if (usr.size() < 3 || usr.size() > 15) {
@@ -75,23 +86,22 @@ void serv::conn(std::string hostname, std::string port, std::wstring usr)
 	sniffer.detach();
 }
 
-int serv::disconn(bool e)
+int serv::disconn(bool e = true)
 {
 	if (free && e) {
 		core::io << core::io::msg(L"kewl", L"ERR: no connection alive");
 		return 1;
 	}
-	if (ssl == NULL) {
-		if (!core::serv.status.gactive() && e)
-			core::io << core::io::msg(L"kewl", L"connecting process interrupted");
-		free = true;
+	if (ssl == NULL)
 		return 1;
-	}
+	ping.cancel();
 	SSL *tmp = ssl;
 	ssl = NULL;
+	//
 	int sockfd = SSL_get_fd(tmp);
 	SSL_shutdown(tmp);
-	SSL_shutdown(tmp);
+	if (SSL_get_shutdown(tmp) == 0)
+		SSL_shutdown(tmp);
 	close(sockfd);
 	std::wstring tmp_nick = core::serv.status.nick;
 	core::serv.status.clientz = 0;
@@ -114,12 +124,8 @@ void serv::operator>>(core::io::msg &trg)
 {
 	std::wstring buf;
 	*this >> buf;
-	if (buf.size() == 0) {
-		trg = core::io::msg(L"", L"");
-		return;
-	}
 	int pos = buf.find(32);
-	if (pos == std::wstring::npos || pos == 0 || pos == buf.size())
+	if (pos == std::wstring::npos || pos == 0)
 		throw 1;
 	trg = core::io::msg(buf.substr(0, pos), buf.substr(pos + 1, buf.size() - pos - 1));
 }
@@ -153,12 +159,10 @@ void serv::operator>>(int &trg)
 	trg = buf;
 }
 
-void serv::handler(std::string hostname, std::string port, std::wstring usr)
+void serv::handler(std::string hostname, uint16_t port, std::wstring usr)
 {
 	try {
-		core::io << core::io::msg(L"kewl", L"resolving \\1" + std::wstring(hostname.begin(), hostname.end()) + L"\\0 port \\1" + std::wstring(port.begin(), port.end()) + L"\\0...");
-	
-		int bytez, sockfd = open_conn(hostname.c_str(), port.c_str());
+		int bytez, sockfd = open_conn(hostname.c_str(), port);
 		if (sockfd <= 0) {
 			sockfd = 0;
 			free = true;
@@ -271,10 +275,21 @@ void serv::handler(std::string hostname, std::string port, std::wstring usr)
 		core::serv.status.name = buf1;
 		core::io.mkwin();
 
-		*this << L"k";
-		*this >> buf1;
+		*this << L"sniffing";
+		for (int i = 0;; i++) {
+			*this >> buf1;
+			if (buf1[0] != L'|') {
+				if (i != 0)
+					core::io << core::io::msg(L"kewl", L"\\2::\\1 EOF");
+				break;
+			}
+			if (i == 0)
+				core::io << core::io::msg(L"kewl", L"\\2::\\1 DOC");
+			core::io << core::io::msg(L"serv", buf1.substr(1, buf1.size() - 1));
+		}
+
 		{
-			int tmp = std::stoi(buf1);
+			int tmp = std::stoi(buf1.substr(1, buf1.size() - 1));
 			timeval timeout;
 			if (tmp > 1) {
 				timeout.tv_sec = tmp * 3 / 4;
@@ -289,7 +304,6 @@ void serv::handler(std::string hostname, std::string port, std::wstring usr)
 			}
 		}
 
-		*this << L"sniffing";
 		status.active = true;
 		core::io::msg buf2;
 		for (;;) {
@@ -309,7 +323,7 @@ void serv::handler(std::string hostname, std::string port, std::wstring usr)
 	}
 }
 	
-int serv::open_conn(const char *hostname, const char *port)
+int serv::open_conn(const char *hostname, uint16_t port)
 {
 	int sd;
 	struct addrinfo hints, *ai, *tmp;
@@ -319,15 +333,26 @@ int serv::open_conn(const char *hostname, const char *port)
 	hints.ai_family = AF_UNSPEC;	// auto IPv4/IPV6
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = 0;
-	
-	if (getaddrinfo(hostname, port, &hints, &ai) != 0) {
+	{
+		std::string tmp(hostname);
+		core::io << core::io::msg(L"kewl", L"resolving \\1" + std::wstring(tmp.begin(), tmp.end()) + L"\\0 port \\1" + std::to_wstring(port) + L"\\0...");
+	}
+	if (getaddrinfo(hostname, std::to_string(port).c_str(), &hints, &ai) != 0) {
 		core::io << core::io::msg(L"kewl", L"ERR: resolving failed");
 		return 0;
 	}
 
 	sd = socket(AF_INET, SOCK_STREAM, 0);
 
-	core::io << core::io::msg(L"kewl", L"trying to connect...");
+	timeval timeout;
+	timeout.tv_sec = 10;
+	timeout.tv_usec = 0;
+	if (setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) != 0) {
+		core::io << core::io::msg(L"kewl", L"ERR: setsockopt failed");
+		return 0;
+	}
+
+	core::io << core::io::msg(L"kewl", L"trying 2 connect...");
 	
 	for (tmp = ai; tmp != NULL; tmp = tmp->ai_next) {
 		if (connect(sd, tmp->ai_addr, tmp->ai_addrlen) != -1)
@@ -459,6 +484,11 @@ std::wstring serv::status::gnick()
 	return nick;
 }
 
+std::wstring serv::status::gname()
+{
+	return name;
+}
+
 int serv::status::connno()
 {
 	return otherz.size() + (nick.size() ? 1 : 0);
@@ -562,5 +592,97 @@ uint8_t serv::ignore::clear()
 	if (list.size() == 0)
 		return 1;
 	list.clear();
+	return 0;
+}
+
+serv::ping::ping()
+:id(0)
+{
+}
+
+uint8_t serv::ping::do_it(uint8_t da_n)
+{
+	if (da_n < 1 || da_n > 64)
+		return 2;
+	if (!core::serv.status.gactive())
+		return 1;
+	if (n != 0)
+		return 3;
+	id = (id + 1) % 100;
+	n = da_n;
+	sum.tv_sec = 0;
+	sum.tv_usec = 0;
+	seq = 0;
+	core::io << core::io::msg(L"kewl", L"PING \"" + core::serv.status.gname() + L"\" 44 bytez packet/z");
+	snd();
+	return 0;
+}
+
+void serv::ping::snd()
+{
+	std::wstring da_id(std::to_wstring(id));
+	da_id.insert(0, std::wstring(3 - da_id.size(), L'x') + L' ');
+	seq++;
+	gettimeofday(&tm, 0);
+	try {
+		core::serv.snd(L"/ping " + da_id);
+	} catch (...) {}
+}
+
+void serv::ping::recv(uint8_t da_id)
+{
+	if (n == 0 || da_id != id)
+		return;
+	timeval tmp;
+	gettimeofday(&tmp, 0);
+	tmp.tv_sec -= tm.tv_sec;
+	tmp.tv_usec -= tm.tv_usec;
+	if (tmp.tv_usec < 0) {
+		tmp.tv_sec--;
+		tmp.tv_usec += 1000000;
+	}
+	sum.tv_sec += tmp.tv_sec;
+	sum.tv_usec += tmp.tv_usec;
+	if (sum.tv_usec > 1000000) {
+		sum.tv_sec++;
+		sum.tv_usec -= 1000000;
+	}
+	unsigned long long int ms = tmp.tv_sec;
+	ms *= (unsigned long long int)10000;
+	ms += (unsigned long long int)tmp.tv_usec / (unsigned long long int)100;
+	if (ms < min || seq == 1)
+		min = ms;
+	if (ms > max || seq == 1)
+		max = ms;
+	core::io << core::io::msg(L"kewl", L"64 bytez from \"" + core::serv.status.gname() + L"\"; seq=\\1" + std::to_wstring(seq) + L"\\0 time=\\1" + std::to_wstring(ms / 10) + L'.' + std::to_wstring(ms % 10) + L"\\0ms");
+	if (seq >= n) {
+		statz();
+		return;
+	}
+	usleep(CLOCKS_PER_SEC);
+	if (n == 0 || da_id != id)
+		return;
+	snd();
+}
+
+void serv::ping::statz()
+{
+	if (n == 0)
+		return;
+	core::io << core::io::msg(L"kewl", L'"' + core::serv.status.gname() + L"\"'z ping statz:");
+	unsigned long long int ms = sum.tv_sec;
+	ms *= (unsigned long long int)10000;
+	ms += (unsigned long long int)sum.tv_usec / (unsigned long long int)100;
+	ms /= n;
+	core::io << core::io::msg(L"kewl", L"\\1" + std::to_wstring(n) + L"\\0 packet/z, min=\\1" + std::to_wstring(min / 10) + L'.' + std::to_wstring(min % 10) + L"\\0, avg=\\1" + std::to_wstring(ms / 10) + L'.' + std::to_wstring(ms % 10) + L"\\0ms, max=\\1" + std::to_wstring(max / 10) + L'.' + std::to_wstring(max % 10) + L"\\0ms");
+	n = 0;
+}
+
+uint8_t serv::ping::cancel()
+{
+	if (n == 0)
+		return 1;
+	n = 0;
+	core::io << core::io::msg(L"kewl", L"WARN: ping process interrupted");
 	return 0;
 }

@@ -12,9 +12,10 @@ public:
 		void init();
 		void on(std::wstring), off();
 		std::wstring gstr(std::wstring), grange(std::wstring);
+		void gattrz(std::wstring, std::vector<std::wstring> &);
 		int gint(std::wstring);
 		bool gtru(std::wstring);
-		void echo(std::wstring, unsigned int);
+		wint_t gchar(std::wstring);
 		uint8_t set(std::wstring, std::vector<std::wstring>), set(std::wstring, std::wstring), set(std::wstring, wint_t), set(std::wstring, int);
 		uint8_t def_col(std::wstring, std::vector<unsigned int>);
 		uint8_t reset(std::wstring);
@@ -28,6 +29,7 @@ public:
 			void on(), off();
 			uint8_t svalz(std::vector<std::wstring>);
 			void reset();
+			void gvalz(std::vector<unsigned int> &);
 		private:
 			unsigned int valz[3], defaultz[3];
 			unsigned int id;
@@ -47,7 +49,7 @@ public:
 		class property2 {
 		public:
 			property2(std::wstring, wint_t);
-			void echo(unsigned int);
+			wint_t gval();
 			uint8_t sval(wint_t);
 			void reset();
 		private:
@@ -87,7 +89,7 @@ public:
 		std::wstring active;
 	} ui;
 
-	void init(bool = true);
+	void init(bool);
 	void sascii();
 	bool iz_k(wint_t);
 	bool iz_k(std::wstring);
@@ -114,6 +116,7 @@ public:
 		bool valid;
 	};
 	
+	void ready();
 	void operator>>(std::wstring &);
 	void operator<<(msg);
 	void send_passwd();
@@ -151,6 +154,8 @@ private:
 		std::wstring buf;
 		size_t pos, begin;
 
+		void help();
+
 		class acompl {
 		public:
 			acompl();
@@ -171,12 +176,13 @@ private:
 
 		class hist {
 		public:
+			hist();
 			void prepare();
 			void buftohist();
 			void histtobuf(bool);
 		private:
 			std::vector<std::wstring> da_hist;
-			int pos, len = 1;
+			int pos, len;
 		} hist;
 	} i;
 
@@ -191,7 +197,7 @@ private:
 		void echo(int, int, int, int, int);
 		void scrll(bool), jump(bool);
 		void scrll_resize(), scrll_chk(int, int);
-		bool new_msg = false;
+		bool new_msg;
 	private:
 		std::vector<msg> msgz;
 		std::wstring title;
@@ -199,7 +205,7 @@ private:
 	} o;
 
 	short int default_contentz[8][3];
-	bool ascii;
+	bool ascii, iz_ready;
 } io;
 
 /*********************************************************************************************/
@@ -207,7 +213,7 @@ private:
 class exec {
 public:
 	size_t interpreter(std::wstring, std::vector<std::wstring> &, size_t = -1);
-	size_t escape(std::vector<std::wstring>, std::wstring &, size_t = -1);
+	size_t escape(std::vector<std::wstring>, std::wstring &, size_t);
 
 	class cmd {
 	public:
@@ -302,9 +308,9 @@ class serv {
 public:
 	serv(), ~serv();
 	friend void io::operator>>(std::wstring &);
-	void conn(std::string, std::string, std::wstring);
-	int disconn(bool = true);
-	void operator<<(core::io::msg);
+	void conn(std::string, uint16_t, std::wstring);
+	int disconn(bool);
+	void snd(std::wstring);
 
 private:
 	void operator<<(std::wstring);
@@ -312,8 +318,8 @@ private:
 	void operator>>(int &);
 	void operator>>(std::wstring &);
 	void operator>>(core::io::msg &);
-	void handler(std::string, std::string, std::wstring);
-	int open_conn(const char *, const char *);
+	void handler(std::string, uint16_t, std::wstring);
+	int open_conn(const char *, uint16_t);
 	SSL_CTX *init_ctx();
 	void certz_echo(SSL *);
 	SSL_CTX *ctx;
@@ -324,10 +330,10 @@ public:
 	class status {
 	public:
 		status();
-		friend void serv::handler(std::string, std::string, std::wstring);
+		friend void serv::handler(std::string, uint16_t, std::wstring);
 		friend int serv::disconn(bool);
 		void draw(int, int), draw();
-		std::wstring gnick();
+		std::wstring gnick(), gname();
 		int connno();
 		void gotherz(std::vector<std::wstring> &);
 		bool gactive();
@@ -348,6 +354,20 @@ public:
 	private:
 		std::vector<std::wstring> list;
 	} ignore;
+
+	class ping {
+	public:
+		ping();
+		uint8_t do_it(uint8_t);
+		uint8_t cancel();
+		void recv(uint8_t);
+	private:
+		void snd(), statz();
+		uint8_t n, seq;
+		timeval tm, sum;
+		long long int min, max;
+		uint32_t id;
+	} ping;
 } serv;
 
 /*********************************************************************************************/
