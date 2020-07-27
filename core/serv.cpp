@@ -31,15 +31,36 @@ void serv::operator<<(int todo)
 		throw 1;
 }
 
-void serv::conn(std::string hostname, std::string port, std::wstring usrz)
+void serv::conn(std::string hostname, std::string port, std::wstring usr)
 {
+	if (!core::io.iz_k(usr))
+		return;
+	if (usr.size() < 3 || usr.size() > 15) {
+		core::io << core::io::msg(L"kewl", L"ERR: nick length must be between 3 and 15 charz");
+		return;
+	}
+
+	if (usr == L"kewl") {
+		core::io << core::io::msg(L"kewl", L"ERR: ur not kewl enough to use diz nick");
+		return;
+	}
+	if (usr == L"serv") {
+		core::io << core::io::msg(L"kewl", L"ERR: 01101110 01101111 01110000 01100101");
+		return;
+	}
+
+	if (usr.find_first_of(L" /") != std::wstring::npos) {
+		core::io << core::io::msg(L"kewl", L"ERR: nick cannot contain \" \" or \"/\"");
+		return;
+	}
+	
 	if (!free) {
 		core::io << core::io::msg(L"kewl", L"ERR: disconn first");
 		return;
 	}
 	free = false;
 
-	sniffer = std::thread(&serv::handler, this, hostname, port, usrz);
+	sniffer = std::thread(&serv::handler, this, hostname, port, usr);
 	sniffer.detach();
 }
 
@@ -110,7 +131,7 @@ void serv::operator>>(int &trg)
 	trg = buf;
 }
 
-void serv::handler(std::string hostname, std::string port, std::wstring usrz)
+void serv::handler(std::string hostname, std::string port, std::wstring usr)
 {
 	try {
 		core::io << core::io::msg(L"kewl", L"resolving " + std::wstring(hostname.begin(), hostname.end()) + L':' + std::wstring(port.begin(), port.end()) + L"...");
@@ -143,15 +164,17 @@ void serv::handler(std::string hostname, std::string port, std::wstring usrz)
 		tmp = SSL_get_cipher(ssl);
 		core::io << core::io::msg(L"serv", L"connection established");
 		core::io << core::io::msg(L"serv", std::wstring(tmp.begin(), tmp.end()) + L" encrypted");
-		if (buf1[0] == 'p') {
-			core::io << core::io::msg(L"kewl", L"server requests passwd");
+		*this << usr;
+		*this >> buf1;
+		if (buf1[0] == L'p') {
+			core::io << core::io::msg(L"kewl", L"received request for " + std::wstring(buf1 == L"passwd serv" ? L"serv" : L"usr") + L" passwd");
 			for (;;) {
 				core::io.send_passwd();
 				*this >> buf1;
 				
-				if (buf1[0] == 'p' || buf1[0] == 'a') {
+				if (buf1[0] == L'p' || buf1[0] == L'a') {
 					core::io << core::io::msg(L"serv", L"WARN: passwd incorrect");
-					if (buf1[0] == 'a') {
+					if (buf1[0] == L'a') {
 						core::io << core::io::msg(L"serv", L"ERR: max of attemptz reached");
 						disconn();
 					return;
@@ -162,26 +185,31 @@ void serv::handler(std::string hostname, std::string port, std::wstring usrz)
 				break;	
 			}
 		}
-		if (buf1[0] != 's') {
+		switch (buf1[0]) {
+		case L's':
+			break;
+		case L'r':
+			core::io << core::io::msg(L"kewl", L"ERR: diz nick iz registered");
+		default:
 			disconn();
 			return;
 		}
-		*this << usrz;
+		*this << L"kk";
 		*this >> buf1;
 		switch (buf1[0]) {
-		case 'k':
+		case L'k':
 			if (buf1.size() > 16 || buf1.size() < 3 || !core::io.iz_k(buf1)) {
 				disconn();
 				return;
 			}
 			core::serv.status.nick = buf1.substr(1, buf1.size() - 1);
 			break;
-		case 'f':
+		case L'f':
 			core::io << core::io::msg(L"serv", L"ERR: chatroom iz full");
 			disconn();
 			return;
-		case 'n':
-			core::io << core::io::msg(L"serv", L"ERR: all of da entered nickz are already in use");
+		case L'n':
+			core::io << core::io::msg(L"serv", L"ERR: entered nick iz already in use");
 			disconn();
 			return;
 		}
@@ -191,7 +219,7 @@ void serv::handler(std::string hostname, std::string port, std::wstring usrz)
 		for (bool i = true; i;) {
 			*this >> buf1;
 			*this << L"kk";
-			if (buf1[buf1.size() - 1] == L',') {
+			if (buf1[buf1.size() - 1] == L' ') {
 				i = false;
 				buf1.erase(buf1.size() - 1);
 			}

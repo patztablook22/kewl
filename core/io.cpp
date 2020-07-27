@@ -23,6 +23,7 @@ void io::ui::init()
 
 	new property0(L"frame_base", {L"wheit", L"blu", L"normal"});
 	new property0(L"frame_hl", {L"cyan", L"blu", L"bold"});
+	new property0(L"new_tag", {L"wheit", L"blu", L"normal"});
 
 	new property0(L"usr_kewl", {L"cyan", L"blacc", L"bold"});
 	new property0(L"usr_serv", {L"blu", L"blacc", L"bold"});
@@ -361,6 +362,24 @@ bool io::iz_k(std::string chk)
 	return iz_k(std::wstring(chk.begin(), chk.end()));
 }
 
+std::wstring io::sha256(std::wstring input)
+{
+	std::string tmp(input.begin(), input.end());
+	const char *string = tmp.c_str();
+	char outputBuffer[65];
+	unsigned char hash[SHA256_DIGEST_LENGTH];
+	SHA256_CTX sha256;
+	SHA256_Init(&sha256);
+	SHA256_Update(&sha256, string, strlen(string));
+	SHA256_Final(hash, &sha256);
+	for(int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+		sprintf(outputBuffer + (i * 2), "%02x", hash[i]);
+	}
+	outputBuffer[64] = 0;
+	tmp = outputBuffer;
+	return std::wstring(tmp.begin(), tmp.end());
+}
+
 std::wstring io::trim(std::wstring s)
 {
 	size_t i, done = 0;
@@ -528,9 +547,9 @@ void io::operator>>(std::wstring &trg)
 				i.use_normal = false;
 				i.draw();
 				return;
-			} else if (i.buf.size() != 0) {
+			} else {
 				try {
-					core::serv << i.buf;
+					core::serv << L'|' + sha256(i.buf);
 				} catch (...) {}
 				i.use_passwd = false;
 				upasswd = false;
@@ -940,12 +959,6 @@ void io::da_erase()
 	core::io << core::io::msg(L"kewl", o.title);
 }
 
-void io::reset()
-{
-	endwin();
-	init(false);
-}
-
 void io::beep(bool interactive)
 {
 	if (!beep_on) {
@@ -1228,11 +1241,13 @@ void io::_mkwin()
 	core::io.ui.on(L"attr_frame_base");
 	mvprintw(0, 0, "%*s", max_x, "");
 	mvaddwstr(0, 1, o.gtitle().substr(0, max_x - 1).c_str());
+	core::io.ui.off(L"attr_frame_base");
 	core::serv.status.draw(max_x, max_y);
+	core::io.ui.on(L"attr_new_tag");
 	if (!(end == 0 && omit1 <= 0) && o.new_msg)
 		mvaddwstr(max_y - 2, max_x - 5, std::wstring(L"_NEW_").substr(0, max_x).c_str());
 	else
 		o.new_msg = false;
-	core::io.ui.off(L"attr_frame_base");
+	core::io.ui.off(L"attr_new_tag");
 	i.draw(max_x, max_y);
 }

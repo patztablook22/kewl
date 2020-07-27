@@ -1,6 +1,7 @@
 namespace core {
 
 /*********************************************************************************************/
+
 class io {
 public:
 	io(), ~io();
@@ -63,6 +64,7 @@ public:
 	bool iz_k(wint_t);
 	bool iz_k(std::wstring);
 	bool iz_k(std::string); // check if itz allowed to use => only aZ, 09, аЯ, áŽ, ...
+	std::wstring sha256(std::wstring);
 	std::wstring trim(std::wstring);
 	std::wstring ver_echo(int);
 
@@ -87,7 +89,7 @@ public:
 	void operator>>(std::wstring &);
 	void operator<<(msg);
 	void send_passwd();
-	void cls(), da_erase(), reset();
+	void cls(), da_erase();
 	void beep(bool), beep(), beep_sdelay(unsigned int), beep_son(bool), mkwin();
 	bool beep_gon();
 	int beep_gdelay();
@@ -142,7 +144,7 @@ private:
 	public:
 		o();
 		friend void io::operator<<(msg);
-		friend void io::cls(), io::da_erase(), io::reset();
+		friend void io::cls(), io::da_erase();
 		int glen(), gpos0(), gpos1();
 		int glinez(int, int, int);
 		std::wstring gtitle();

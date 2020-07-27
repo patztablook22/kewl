@@ -123,7 +123,8 @@ public:
 	{
 		if (arg.size() != 1)
 			return 2;
-		core::io.reset();
+		endwin();
+		core::io.init(false);
 		return 0;
 	}
 } reset;
@@ -132,7 +133,7 @@ class conn: public core::exec::cmd {
 public:
 	conn()
 	{
-		core::exec.add(L"conn", {{L"address:port nick0,...,nick15", L"connect to kewl serv"}}, this);
+		core::exec.add(L"conn", {{L"address:port nick", L"connect to kewl serv"}}, this);
 	}
 
 	uint8_t usr(std::vector<std::wstring> arg)
@@ -154,31 +155,7 @@ public:
 			return 2;
 		if (port <= 0 || port > 65535)
 			return 2;
-		std::wstring usrz = arg[2];
-		if (usrz.find(32) != std::wstring::npos) {
-			core::io << core::io::msg(L"kewl", L"ERR: nick can not contain spacez etc.");
-			return 1;
-		}
-		pos = arg[2].find(',');
-		if (pos == std::wstring::npos)
-			pos = arg[2].size();
-		for (int i = 1; arg[2].size() > 0; i++) {
-			if (pos > 15 || pos < 3 || !core::io.iz_k(arg[2].substr(0, pos)))
-				return 2;
-			if (arg[2].substr(0, pos) == L"kewl" || arg[2].substr(0, pos) == L"serv") {
-				core::io << core::io::msg(L"kewl", L"ERR: u can not use kewl/serv as ur nick");
-				return 1;
-			}
-			if (arg[2].size() == pos + 1)
-				return 2;
-			arg[2].erase(0, pos + 1);
-			if (i == 16)
-				return 2;
-			pos = arg[2].find(',');
-			if (pos == std::wstring::npos)
-				pos = arg[2].size();
-		}
-		core::serv.conn(hostname, std::to_string(port), usrz);
+		core::serv.conn(hostname, std::to_string(port), arg[2]);
 		return 0;
 	}
 } conn;
@@ -199,8 +176,6 @@ public:
 
 	uint8_t serv(std::vector<std::wstring> arg)
 	{
-		if (arg.size() != 1)
-			return 2;
 		core::io << core::io::msg(L"serv", L"imma shut down...");
 		core::io.beep();
 		return core::serv.disconn();
