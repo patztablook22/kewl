@@ -14,6 +14,7 @@ public:
 		std::wstring gstr(std::wstring), grange(std::wstring);
 		void echo(std::wstring, unsigned int);
 		uint8_t set(std::wstring, std::vector<std::wstring>), set(std::wstring, std::wstring), set (std::wstring, wint_t);
+		uint8_t def_col(std::wstring, std::vector<unsigned int>);
 		uint8_t reset(std::wstring);
 		void reset();
 
@@ -93,6 +94,17 @@ public:
 	void beep(bool), beep(), beep_sdelay(unsigned int), beep_son(bool), mkwin();
 	bool beep_gon();
 	int beep_gdelay();
+
+	class stfu {
+	public:
+		stfu();
+		bool gon();
+		void toggle();
+	private:
+		bool on[2];
+		std::thread::id main_tid;
+	} stfu;
+
 private:
 	void _mkwin();
 	std::mutex scr_mtx;
@@ -158,6 +170,7 @@ private:
 		int len, pos0, pos1, pos2;
 	} o;
 
+	short int default_contentz[8][3];
 } io;
 
 /*********************************************************************************************/
@@ -218,7 +231,7 @@ public:
 		bool existz(std::wstring);
 		std::string location;
 		std::map<std::wstring, macro *> da_macroz;
-		std::vector<std::wstring> done;
+		std::vector<std::wstring> called;
 
 	} macroz;
 

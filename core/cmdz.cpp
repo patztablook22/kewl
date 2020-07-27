@@ -445,10 +445,9 @@ private:
 				return 1;
 			}
 		} else if (type == L"txt_") {
-			std::wstring tmp;
-			for (int i = 1; i < wut.size(); i++)
-				tmp += (i == 1 ? L"" : L" ") + wut[i];
-			switch (core::io.ui.set(wut[0], tmp)) {
+			if (wut.size() != 2)
+				return 2;;
+			switch (core::io.ui.set(wut[0], wut[1])) {
 			case 0:
 				core::io << core::io::msg(L"kewl", L"property set successful");
 				break;
@@ -465,35 +464,89 @@ private:
 				return 1;
 			}
 		} else if (type == L"char_") {
-			wint_t tmp;
-			if (wut.size() == 1) {
-				tmp = 32;
-			} else if (wut.size() == 2) {
-				if (wut[1].size() != 1) {
-					core::io << core::io::msg(L"kewl", L"ERR: not a char: \"" + wut[1] + L'"');
-					return 1;
-				}
-				tmp = wut[1][0];
-			} else {
+			if (wut.size() != 2)
 				return 2;
+			if (wut[1].size() != 1) {
+				core::io << core::io::msg(L"kewl", L"ERR: not a char: \"" + wut[1] + L'"');
+				return 1;
 			}
-			core::io.ui.set(wut[0], tmp);
+			core::io.ui.set(wut[0], wut[1][0]);
 		} else {
 			return 2;
 		}
 		return 0;
 	}
+
+	uint8_t define(std::vector<std::wstring> wut)
+	{
+		if (wut.size() != 2)
+			return 2;
+		unsigned int c[3];
+		try {
+			if (wut[1].size() == 7 && wut[1][0] == L'#') {
+				c[0] = std::stoi(std::wstring(wut[1].begin() + 1, wut[1].begin() + 3), NULL, 16);
+				c[1] = std::stoi(std::wstring(wut[1].begin() + 3, wut[1].begin() + 5), NULL, 16);
+				c[2] = std::stoi(std::wstring(wut[1].begin() + 5, wut[1].begin() + 7), NULL, 16);
+			} else {
+				for (int i = 0; i < 2; i++) {
+					int pos = wut[1].find(L',');
+					if (pos == std::wstring::npos)
+						return 2;
+					std::wstring tmp(wut[1].begin(), wut[1].begin() + pos);
+					wut[1].erase(0, pos + 1);
+					c[i] = std::stoi(tmp);
+					if (std::to_wstring(c[i]) != tmp)
+						return 2;
+				}
+				c[2] = std::stoi(wut[1]);
+				if (std::to_wstring(c[2]) != wut[1])
+					return 2;				
+			}
+		} catch (std::invalid_argument) {
+			return 2;
+		}
+
+		switch (core::io.ui.def_col(wut[0], {c[0] * 1000 / 256, c[1] * 1000 / 256, c[2] * 1000 / 256})) {
+		case 0:
+			core::io << core::io::msg(L"kewl", L"color (re)definition successful");
+			return 0;
+		default:
+		case 1:
+			core::io << core::io::msg(L"kewl", L"ERR: max of colorz reached for current terminal");
+			return 1;
+		case 2:
+			return 2;
+		case 255:
+			core::io << core::io::msg(L"kewl", L"ERR: ur terminal cannot redefine colorz");
+			return 1;
+		case 3:
+			core::io << core::io::msg(L"kewl", L"ERR: color name length must be between 3 and 15 charz");
+			return 1;
+		case 4:
+			core::io << core::io::msg(L"kewl", L"ERR: red component not in range");
+			return 1;
+		case 5:
+			core::io << core::io::msg(L"kewl", L"ERR: blu component not in range");
+			return 1;
+		case 6:
+			core::io << core::io::msg(L"kewl", L"ERR: green component not in range");
+			return 1;
+		}
+	}
 public:
 	ui()
 	{
-		core::exec.add(L"ui", {{L"reset", L"reset everything to itz initial state"}, {L"reset some_property", L"reset some_property to itz initial state"}, {L"set attr_property fg_col bg_col txt_weight"}, {L"set txt_property blah blah blah string"}, {L"set char_property #", L"set property valuez"}, {L"list propertiez/colorz/weightz", L"get list of all propertiez/..."}}, this);
+		core::exec.add(L"ui", {{L"define col_name #ffffff"}, { L"define col_name 255 255 255", L"define new / redefine existing color"}, {L"set attr_property fg_col bg_col txt_weight"}, {L"set txt_property \"blah blah blah string\""}, {L"set char_property \"#\"", L"set property valuez"}, {L"reset", L"reset all propertiez to their initial statez"}, {L"reset some_property", L"reset some_property to itz initial state"}, {L"list propertiez/colorz/weightz", L"get list of all propertiez/..."}}, this);
 	}
 
 	uint8_t usr(std::vector<std::wstring> arg)
 	{
 		if (arg.size() == 1)
 			return 2;
-		if (arg[1] == L"reset") {
+		if (arg[1] == L"define") {
+			arg.erase(arg.begin(), arg.begin() + 2);
+			return define(arg);
+		} else if (arg[1] == L"reset") {
 			if (arg.size() == 2) {
 				core::io.ui.reset();
 				core::io << core::io::msg(L"kewl", L"propertiez reset successful");
@@ -537,15 +590,19 @@ public:
 	{
 		switch (arg.size()) {
 		case 1:
-			trg = {L"list", L"reset", L"set"};
+			trg = {L"define", L"list", L"reset", L"set"};
 			break;
 		case 2:
-			if (arg[1] == L"set" || arg[1] == L"reset")
+			if (arg[1] == L"define")
+				core::io.ui.gcolorz(trg);
+			else if (arg[1] == L"set" || arg[1] == L"reset")
 				core::io.ui.gpropertiez(trg);
 			else if (arg[1] == L"list")
 				trg = {L"colorz", L"propertiez", L"weightz"};
 			break;
 		case 3:
+			if (arg[1] == L"define")
+				trg = {L"#ffffff", L"255,255,255"};
 		case 4:
 			if (arg[1] == L"set" && arg[2].substr(0, 5) == L"attr_")
 				core::io.ui.gcolorz(trg);

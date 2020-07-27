@@ -12,36 +12,42 @@ io::ui::ui()
 	weightz[L"dim"] = A_DIM;
 	weightz[L"normal"] = A_NORMAL;
 	weightz[L"bold"] = A_BOLD;
+	weightz[L"italic"] = A_ITALIC;
 	init();
 }
 
 void io::ui::init()
 {
-	if (!has_colors())
-		core::io << core::io::msg(L"kewl", L"WARN: ur terminal does not support colorz");
 	propertiez0.clear();
+	propertiez1.clear();
+	propertiez2.clear();
 
-	new property0(L"frame_base", {L"wheit", L"blu", L"normal"});
-	new property0(L"frame_hl", {L"cyan", L"blu", L"bold"});
-	new property0(L"new_tag", {L"wheit", L"blu", L"normal"});
+	new property0(L"frame_base", {L"blacc", L"wheit", L"normal"});
+	new property0(L"frame_hl", {L"blacc", L"wheit", L"bold"});
+	new property0(L"new_tag", {L"blacc", L"wheit", L"normal"});
 
-	new property0(L"usr_kewl", {L"cyan", L"blacc", L"bold"});
-	new property0(L"usr_serv", {L"blu", L"blacc", L"bold"});
-	new property0(L"usr_otherz", {L"wheit", L"blacc", L"bold"});
+	new property0(L"usr_kewl", {L"wheit", L"blacc", L"bold"});
+	new property0(L"usr_serv", {L"blacc", L"blacc", L"bold"});
+	new property0(L"usr_otherz", {L"wheit", L"blacc", L"dim"});
 
-	new property0(L"hr", {L"wheit", L"blacc", L"normal"});
-	new property0(L"err", {L"yolow", L"blacc", L"normal"});
-	new property0(L"warn", {L"magenta", L"blacc", L"normal"});
-	new property0(L"private", {L"green", L"blacc", L"normal"});
+	new property0(L"hr", {L"wheit", L"blacc", L"dim"});
+	new property0(L"err", {L"wheit", L"blacc", L"bold"});
+	new property0(L"warn", {L"wheit", L"blacc", L"bold"});
+	new property0(L"private", {L"blacc", L"blacc", L"bold"});
 
 	new property0(L"prompt_normal", {L"wheit", L"blacc", L"normal"});
-	new property0(L"prompt_passwd", {L"wheit", L"blacc", L"normal"});
+	new property0(L"prompt_passwd", {L"wheit", L"blacc", L"bold"});
 
-	new property1(L"prompt_normal", 0, 8, L"[(u)]> ");
+	new property1(L"prompt_normal", 0, 8, L"PROMPT> ");
 	new property1(L"prompt_passwd", 0, 8, L"PASSWD> ");
 
 	new property2(L"passwd_input", L'*');
 	new property2(L"hr", L'-');
+
+	if (!has_colors())
+		core::io << core::io::msg(L"kewl", L"WARN: ur terminal doez not support colorz");
+	else if (!can_change_color())
+		core::io << core::io::msg(L"kewl", L"WARN: ur terminal cannot redefine colorz");
 }
 
 uint8_t io::ui::set(std::wstring name, std::vector<std::wstring> da_valuez)
@@ -50,6 +56,31 @@ uint8_t io::ui::set(std::wstring name, std::vector<std::wstring> da_valuez)
 		return 1;
 
 	return propertiez0[name]->svaluez(da_valuez);
+}
+
+uint8_t io::ui::def_col(std::wstring name, std::vector<unsigned int> da_value)
+{
+	if (da_value.size() != 3)
+		return 2;
+	if (name.size() < 3 || name.size() > 8)
+		return 3;
+	for (int i = 0; i < 3; i++) {
+		if (da_value[i] < 0 || da_value[i] > 1000)
+			return 4 + i;
+	}
+	if (!can_change_color())
+		return -1;
+
+	if (colorz.find(name) == colorz.end()) {
+		if (colorz.size() > COLORS)
+			return 1;
+		init_color(colorz.size(), da_value[0], da_value[1], da_value[2]);
+		colorz[name] = colorz.size();
+	} else {
+		if (init_color(colorz[name], da_value[0], da_value[1], da_value[2]) == ERR)
+			return -1;
+	}
+	return 0;	
 }
 
 uint8_t io::ui::reset(std::wstring name)
@@ -324,8 +355,12 @@ void io::init(bool init_ui)
 	start_color();
 	use_default_colors();
 
-	if (init_ui)
+	if (init_ui) {
 		core::io.ui.init();
+		for (int i = 0; i < 8; i++)
+			color_content(i, &default_contentz[i][0], &default_contentz[i][1], &default_contentz[i][2]);
+		init_color(COLOR_WHITE, 742, 742, 742);
+	}
 
 	beep_tm.tv_sec = 0;
 	beep_tm.tv_usec = 0;
@@ -335,6 +370,8 @@ void io::init(bool init_ui)
 
 io::~io()
 {
+	for (int i = 0; i < 8; i++)
+		init_color(i, default_contentz[i][0], default_contentz[i][1], default_contentz[i][2]);
 	endwin();
 }
 
@@ -891,6 +928,8 @@ void io::i::hist::histtobuf(bool bacc)
 
 void io::operator<<(msg da_msg)
 {
+	if (stfu.gon())
+		return;
 	int max_x, max_y, tmp_lcount, tmp_omit, i, j;
 	getmaxyx(stdscr, max_y, max_x);
 	if (!da_msg.gvalid())
@@ -1003,6 +1042,26 @@ bool io::beep_gon()
 int io::beep_gdelay()
 {
 	return beep_delay;
+}
+
+io::stfu::stfu()
+:main_tid(std::this_thread::get_id())
+{
+	on[0] = false;
+	on[1] = false;
+}
+
+bool io::stfu::gon()
+{
+	return on[std::this_thread::get_id() == main_tid ? 0 : 1];
+}
+
+void io::stfu::toggle()
+{
+	if (std::this_thread::get_id() == main_tid)
+		on[0] = !on[0];
+	else
+		on[1] = !on[1];
 }
 
 io::o::o()

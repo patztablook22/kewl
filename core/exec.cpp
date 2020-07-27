@@ -146,12 +146,18 @@ void exec::usr::operator<<(std::wstring input)
 	}
 	if (arg.size() == 0 || input.size() == 0 || input[0] == L' ')
 		return;
+	bool stfu = (arg[arg.size() - 1] == L"**stfu" && input[input.size() - 1] != L'"' && input[input.size() - 2] != L'"');
+	if (stfu)
+		arg.erase(arg.end() - 1);
 	switch (arg[0][0]) {
 	case L'_':
 		if (arg.size() != 1) {
 			core::io << core::io::msg(L"kewl", L"ERR: macroz do not take any argument");
 			return;
 		}
+		if (stfu)
+			core::io << core::io::msg(L"kewl", L"WARN: u cannot use stfu mode on whole macroz");
+
 		arg[0].erase(0, 1);
 		if (arg[0].size() == 0)
 			return;
@@ -163,14 +169,14 @@ void exec::usr::operator<<(std::wstring input)
 			core::io << core::io::msg(L"kewl", L"ERR: macro not found: \"" + arg[0] + L'"');
 			return;
 		}
-		if (std::find(core::exec.macroz.done.begin(), core::exec.macroz.done.end(), arg[0]) == core::exec.macroz.done.end()) {
-			core::exec.macroz.done.push_back(arg[0]);
-			bool first = core::exec.macroz.done.size() == 1;
+		if (std::find(core::exec.macroz.called.begin(), core::exec.macroz.called.end(), arg[0]) == core::exec.macroz.called.end()) {
+			core::exec.macroz.called.push_back(arg[0]);
+			bool first = core::exec.macroz.called.size() == 1;
 			core::exec.macroz.da_macroz[arg[0]]->do_it();
 			if (first)
-				core::exec.macroz.done.clear();
+				core::exec.macroz.called.clear();
 		} else {
-			core::io << core::io::msg(L"kewl", L"WARN: skipping recursive macro execution");
+			core::io << core::io::msg(L"kewl", L"WARN: skipping recursive macro call");
 			return;
 		}
 		break;
@@ -185,7 +191,19 @@ void exec::usr::operator<<(std::wstring input)
 			core::io << core::io::msg(L"kewl", L"ERR: command not found: \"" + arg[0] + L'"');
 			return;
 		}
-		switch (core::exec.cmdz[arg[0]]->gptr()->usr(arg)) {
+
+		if (arg[0] == L"macroz" && core::exec.macroz.called.size() != 0) {
+			core::io << core::io::msg(L"kewl", L"ERR: macroz cannot manage themselvez");
+			return;
+		}
+
+		if (stfu)
+			core::io.stfu.toggle();
+		int rtn = core::exec.cmdz[arg[0]]->gptr()->usr(arg);
+		if (stfu)
+			core::io.stfu.toggle();
+
+		switch (rtn) {
 		case 0:
 			break;
 		case 2:
