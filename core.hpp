@@ -117,9 +117,7 @@ private:
 			void get();
 		private:
 			std::vector<std::wstring> possibz;
-			int iter;
-			std::wstring prez;
-			bool second;
+			int iter, pos, len;
 		} acompl;
 
 		class clpbrd {
@@ -164,6 +162,8 @@ private:
 
 class exec {
 public:
+	size_t interpreter(std::wstring, std::vector<std::wstring> &, size_t = -1);
+
 	class cmd {
 	public:
 		virtual uint8_t usr(std::vector<std::wstring>) = 0;
@@ -196,7 +196,7 @@ public:
 
 	void gcmdz(std::vector<std::wstring> &);
 	void gman(std::wstring, std::vector<std::vector<std::wstring>> &);
-	void cmd_gacompl(std::wstring, std::vector<std::wstring> &);
+	void cmd_gacompl(std::vector<std::wstring>, std::vector<std::wstring> &);
 	bool iz_cmd(std::wstring);
 
 	class macroz {
@@ -221,36 +221,35 @@ public:
 	} macroz;
 
 private:
-	std::vector<std::wstring> interpreter(std::wstring);
 	std::map<std::wstring, cmd_handler *> cmdz;
 } exec;
 
 /*********************************************************************************************/
 
-class perform {
+class cmdl {
 public:
-	class func {
+	class opt {
 	public:
 		virtual int usr(std::vector<std::wstring>) = 0;
 	};
 
-	class func_handler {
+	class opt_handler {
 	public:
-		func_handler(std::wstring, func *);
-		func *gptr();
+		opt_handler(std::wstring, opt *);
+		opt *gptr();
 		std::wstring gdesc();
 	private:
 		std::wstring desc;
-		func *ptr;		
+		opt *ptr;		
 	};
-	void add(std::wstring, std::wstring, func *);
-	void gfuncz(std::vector<std::wstring> &);
+	void add(std::wstring, std::wstring, opt *);
+	void goptz(std::vector<std::wstring> &);
 	std::wstring gdesc(std::wstring);
-	bool iz_func(std::wstring);
+	bool iz_opt(std::wstring);
 	void operator<<(std::wstring);
 private:
-	std::map<std::wstring, func_handler *> funcz;
-} perform;
+	std::map<std::wstring, opt_handler *> optz;
+} cmdl;
 
 /*********************************************************************************************/
 
@@ -300,14 +299,14 @@ public:
 
 #include "core/io.cpp"
 #include "core/exec.cpp"
-#include "core/perform.cpp"
+#include "core/cmdl.cpp"
 #include "core/serv.cpp"
 
 namespace cmdz {
 	#include "core/cmdz.cpp"
 }
-namespace funcz {
-	#include "core/funcz.cpp"
+namespace optz {
+	#include "core/optz.cpp"
 }
 
 }

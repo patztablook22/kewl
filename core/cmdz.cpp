@@ -155,6 +155,10 @@ public:
 		if (port <= 0 || port > 65535)
 			return 2;
 		std::wstring usrz = arg[2];
+		if (usrz.find(32) != std::wstring::npos) {
+			core::io << core::io::msg(L"kewl", L"ERR: nick can not contain spacez etc.");
+			return 1;
+		}
 		pos = arg[2].find(',');
 		if (pos == std::wstring::npos)
 			pos = arg[2].size();

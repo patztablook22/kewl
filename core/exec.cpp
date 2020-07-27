@@ -7,18 +7,71 @@ uint8_t exec::cmd::serv(std::vector<std::wstring>)
 	return 0;
 }
 
-std::vector<std::wstring> exec::interpreter(std::wstring input)
+size_t exec::interpreter(std::wstring input, std::vector<std::wstring> &trg, size_t end)
 {
-	std::vector<std::wstring> result;
-	input = core::io.trim(input);
-	int pos;
-	while ((pos = input.find(32)) != std::wstring::npos) {
-		if (pos != 0)
-			result.push_back(input.substr(0, pos));
-		input.erase(0, pos + 1);
+	bool in = false, par = false;
+	int iter = 0;
+	std::wstring tmp;
+	while (iter < input.size()) {
+		wint_t ch = input[iter++];
+		switch (ch) {
+		case L'\\':
+			if (iter == input.size())
+				break;
+			switch (input[iter++]) {
+			case L'\\':
+				tmp += L'\\';
+				break;
+			case L'"':
+				tmp += L'"';
+				break;
+			case L'\'':
+				tmp+= L'\'';
+				break;
+			default:
+				break;
+			}
+			break;
+		case L'"':
+			switch (in) {
+			case true:
+				if (iter < input.size() && input[iter++] != 32)
+					return (end == -1 ? iter - 1 : -1);
+				trg.push_back(tmp);
+				if (iter > end)
+					return iter;
+				tmp.clear();
+				in = false;
+				break;
+			case false:
+				if (iter > 1 && input[iter - 2] != 32)
+					return (end == -1 ? iter - 1 : -1);
+				in = true;
+			}	
+			break;
+		case L' ':
+			switch (in) {
+			case true:
+				if (tmp.size() == 0 || tmp[tmp.size() - 1] != L' ')
+					tmp += L' ';
+				break;
+			case false:
+				trg.push_back(tmp);
+				if (iter > end)
+					return iter;
+				tmp.clear();
+				break;
+			}
+			break;
+		default:
+			tmp += ch;
+		}
 	}
-	result.push_back(input);
-	return result;
+	if (tmp.size() != 0 || in)
+		trg.push_back(tmp);
+	if (in)
+		return iter + 1;
+	return iter;
 }
 
 exec::cmd_handler::cmd_handler(std::vector<std::vector<std::wstring>> da_man, cmd *da_ptr)
@@ -67,12 +120,11 @@ void exec::gman(std::wstring da_cmd, std::vector<std::vector<std::wstring>> &trg
 	cmdz[da_cmd]->gman(trg);
 }
 
-void exec::cmd_gacompl(std::wstring input, std::vector<std::wstring> &trg)
+void exec::cmd_gacompl(std::vector<std::wstring> arg, std::vector<std::wstring> &trg)
 {
 	trg.clear();
-	std::vector<std::wstring> arg = interpreter(input);
-	if (input[input.size() - 1] != 32)
-		arg.erase(arg.end() - 1);
+	if (arg.size() == 0)
+		return;
 	arg[0].erase(0, 1);
 	if (cmdz.find(arg[0]) == cmdz.end())
 		return;
@@ -87,8 +139,12 @@ bool exec::iz_cmd(std::wstring input)
 
 void exec::usr::operator<<(std::wstring input)
 {
-	std::vector<std::wstring> arg = core::exec.interpreter(input);
-	if (arg.size() == 0 || arg[0].size() == 0 || input[0] == 32)
+	std::vector<std::wstring> arg;
+	if (core::exec.interpreter(input, arg) != input.size()) {
+		core::io << core::io::msg(L"kewl", L"ERR: interpretation failed");
+		return;
+	}
+	if (arg.size() == 0 || input.size() == 0 || input[0] == L' ')
 		return;
 	switch (arg[0][0]) {
 	case L'_':
@@ -119,6 +175,8 @@ void exec::usr::operator<<(std::wstring input)
 		}
 		break;
 	default:
+		if (arg[0].size() == 0 && arg.size() == 1)
+			return;
 		if (arg[0].size() > 15) {
 			core::io << core::io::msg(L"kewl", L"ERR: cmdz hav limited length to 15 charz");
 			return;
@@ -142,7 +200,8 @@ void exec::usr::operator<<(std::wstring input)
 
 void exec::serv::operator<<(std::wstring input)
 {
-	std::vector<std::wstring> arg = core::exec.interpreter(input);
+	std::vector<std::wstring> arg;
+	core::exec.interpreter(input, arg);
 	if (arg.size() == 0 || arg[0].size() == 0 || input[0] == 32)
 		return;
 	if (core::exec.cmdz.find(arg[0]) == core::exec.cmdz.end())
@@ -231,7 +290,7 @@ void exec::macroz::load()
 	}
 	da_return:
 	fd.close();
-	core::io << core::io::msg(L"kewl", std::to_wstring(da_macroz.size()) + L" macroz imported");
+	core::io << core::io::msg(L"kewl", std::to_wstring(da_macroz.size()) + L" macro/z imported");
 }
 
 void exec::macroz::gmacroz(std::vector<std::wstring> &trg)
@@ -248,7 +307,7 @@ bool exec::macroz::existz(std::wstring da_macro)
 
 exec::macroz::macro::macro(std::wstring da_name, std::vector<std::wstring> &da_content)
 {
-	if (da_name.size() == 0 || da_name.size() > 15 || core::exec.macroz.existz(da_name) || da_content.size() == 0)
+	if (da_name.size() < 2 || da_name.size() > 15 || core::exec.macroz.existz(da_name) || da_content.size() == 0)
 		return;
 	content = da_content;
 	core::exec.macroz.da_macroz[da_name] = this;

@@ -692,7 +692,6 @@ void io::i::_draw(int max_x, int max_y)
 }
 
 io::i::acompl::acompl()
-:prez(L"/@")
 {
 	reset();
 }
@@ -701,59 +700,65 @@ void io::i::acompl::reset()
 {
 	possibz.clear();
 	iter = 0;
-	second = false;
+	pos = 0;
+	len = 0;
 }
 
 void io::i::acompl::get()
 {
-	std::wstring trimmed = core::io.trim(core::io.i.buf);
-	if (trimmed.size() == 0)
-		return;
-	std::wstring search;
-	if (possibz.size() == 0) {
-		int tmp_begin = core::io.i.buf.substr(0, core::io.i.pos).find_last_of(32);
-		if (tmp_begin == std::wstring::npos)
-			tmp_begin = 0;
-		else
-			tmp_begin++;
-		int tmp_end = core::io.i.buf.find(32, core::io.i.pos);
-		if (tmp_end == std::wstring::npos)
-			tmp_end = core::io.i.buf.size();
-		search = core::io.i.buf.substr(tmp_begin, tmp_end - tmp_begin);
-		int tmp_pos = trimmed.find(32);
-		if (tmp_pos == std::wstring::npos)
-			tmp_pos = trimmed.size();
-		wint_t pre = trimmed[0];
-		if (tmp_pos >= core::io.i.pos) {
-			switch (pre) {
+	bool first = possibz.size() == 0;
+	if (first) {
+		std::vector<std::wstring> arg;
+		std::wstring search(core::io.i.buf);
+		if (search.size() == 0)
+			return;
+		bool iz_cmd = (search.size() > 1 && search[0] == L'/' && search[1] != L' ');
+		int tmp_end = core::io.i.pos - iz_cmd;
+		if (iz_cmd)
+			search.erase(0, 1);
+		int tmp = core::exec.interpreter(search, arg, tmp_end);
+		if (tmp == -1 || arg.size() == 0)
+			return;
+		if (iz_cmd) {
+			arg[0].insert(0, 1, L'/');
+			tmp++;
+		}
+		if (tmp == core::io.i.pos && core::io.i.buf[tmp - 1] == 32) {
+			search = L"";
+		} else {
+			search = arg[arg.size() - 1];
+			arg.erase(arg.end() - 1);
+		}
+	
+		if (arg.size() == 0) {
+			if (search.size() == 0 || search[0] != core::io.i.buf[0])
+				return;
+			switch (search[0]) {
 			case L'/':
-				if (trimmed.size() == 1 || trimmed[1] != L'_') {
-					core::exec.gcmdz(possibz);
-					for (int i = 0; i < possibz.size(); i++)
-						possibz[i].insert(0, 1, L'/');
-				} else {
+				search.erase(0, 1);
+				if (search.size() > 0 && search[0] == L'_') {
 					core::exec.macroz.gmacroz(possibz);
 					for (int i = 0; i < possibz.size(); i++)
-						possibz[i].insert(0, L"/_");
+						possibz[i].insert(0, 1, L'_');
+				} else {
+					core::exec.gcmdz(possibz);
 				}
 				break;
 			case L'@':
-				core::serv.status.gotherz(possibz);
-				for (int i = 0; i < possibz.size(); i++)
-					possibz[i].insert(0, 1, L'@');
+				search.erase(0, 1);
+				if (!core::serv.status.gactive())
+					return;
+				core::serv.status.gotherz(possibz);	
 				break;
 			default:
 				return;
 			}
-		} else {
-			if (pre == L'/')
-				core::exec.cmd_gacompl(std::wstring(core::io.i.buf.begin(), core::io.i.buf.begin() + core::io.i.pos), possibz);
+		} else if (iz_cmd) {
+			core::exec.cmd_gacompl(arg, possibz);
 		}
 
 		int i = 0;
-		for (;;) {
-			if (i >= possibz.size())
-				break;
+		while (i < possibz.size()) {
 			if (possibz[i].size() < search.size()) {
 				possibz.erase(possibz.begin() + i);
 				continue;
@@ -769,24 +774,41 @@ void io::i::acompl::get()
 			else
 				possibz.erase(possibz.begin() + i);
 		}
+		if (search.size() > 0) {
+			pos = core::io.i.buf.rfind(search, tmp);
+			if (pos == std::wstring::npos) {
+				reset();
+			}
+		} else {
+			for (int i = core::io.i.pos - 1; i >= 0; i--) {
+				if (core::io.i.buf[i] == 32) {
+					pos = i + 1;
+					break;
+				}
+			}
+			if (pos == 0 && (core::io.i.buf[pos] == L'/' || core::io.i.buf[pos] == L'@'))
+				pos++;
+			if (core::io.i.buf[pos] == L'"')
+				pos++;
+		}
+		len = search.size();
 	}
+
 	if (possibz.size() == 0)
 		return;
-	int tmp_pos_begin = core::io.i.buf.substr(0, core::io.i.pos - (second ? 1 : 0)).find_last_of(32);
-	if (tmp_pos_begin == std::wstring::npos)
-		tmp_pos_begin = 0;
-	else
-		tmp_pos_begin++;
-	core::io.i.buf.erase(tmp_pos_begin, core::io.i.pos - tmp_pos_begin);
-	core::io.i.pos -= core::io.i.pos - tmp_pos_begin;
-
-	core::io.i.buf.insert(core::io.i.pos, possibz[iter]);
-	core::io.i.pos += possibz[iter].size();
-	if (core::io.i.buf[core::io.i.pos] != 32)
+	core::io.i.buf.erase(pos, len);
+	core::io.i.buf.insert(pos, possibz[iter]);
+	len = possibz[iter].size();
+	core::io.i.pos = pos + len;
+	if (pos >= 0 && core::io.i.buf[pos - 1] == L'"') {
+		if (core::io.i.pos >= core::io.i.buf.size() || core::io.i.buf[core::io.i.pos] != L'"')
+			core::io.i.buf.insert(core::io.i.pos, 1, L'"');
+		core::io.i.pos++;
+	}
+	if (core::io.i.pos >= core::io.i.buf.size() || core::io.i.buf[core::io.i.pos] != 32)
 		core::io.i.buf.insert(core::io.i.pos, 1, 32);
 	core::io.i.pos++;
 	iter = (iter + 1) % possibz.size();
-	second = true;
 	if (possibz.size() == 1)
 		reset();
 }

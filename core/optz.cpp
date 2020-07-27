@@ -1,8 +1,8 @@
-class help: public core::perform::func {
+class help: public core::cmdl::opt {
 public:
 	help()
 	{
-		core::perform.add(L"help", L"print diz help (surprisingly lol)", this);
+		core::cmdl.add(L"help", L"print diz help (surprisingly lol)", this);
 	}
 
 	int usr(std::vector<std::wstring> arg)
@@ -13,16 +13,16 @@ public:
 		std::wcout << L"GENERAL:" << std::endl;
 		std::wcout << L'\t' << arg[0] << std::endl;
 		std::wcout << L"\t\tlaunch kewl" << std::endl;
-		std::wcout << L'\t' << arg[0] << L" --func" << std::endl;
-		std::wcout << L"\t\tout-of-da-box function, read \"FUNCZ\" below" << std::endl;
+		std::wcout << L'\t' << arg[0] << L" --opt" << std::endl;
+		std::wcout << L"\t\tout-of-da-box opttion, read \"OPTZ\" below" << std::endl;
 		std::wcout << L'\t' << arg[0] << L" cmd" << std::endl;
 		std::wcout << L"\t\tstart kewl and execute da cmd, read \"CMDZ\" below" << std::endl;
-		std::wcout << L"FUNCZ:" << std::endl;
+		std::wcout << L"OPTZ:" << std::endl;
 		std::vector<std::wstring> tmp;
-		core::perform.gfuncz(tmp);
+		core::cmdl.goptz(tmp);
 		for (int i = 0; i < tmp.size(); i++) {
 			std::wcout << '\t' << arg[0] << L" --" + tmp[i] << std::endl;
-			std::wcout << L"\t\t" << core::perform.gdesc(tmp[i]) << std::endl;
+			std::wcout << L"\t\t" << core::cmdl.gdesc(tmp[i]) << std::endl;
 		}
 
 		std::wcout << L"CMDZ:" << std::endl;
@@ -36,11 +36,11 @@ public:
 
 } help;
 
-class version: public core::perform::func {
+class version: public core::cmdl::opt {
 public:
 	version()
 	{
-		core::perform.add(L"version", L"print current version", this);
+		core::cmdl.add(L"version", L"print current version", this);
 	}
 
 	int usr(std::vector<std::wstring> arg)
@@ -54,11 +54,11 @@ public:
 	}
 } version;
 
-class about: public core::perform::func {
+class about: public core::cmdl::opt {
 public:
 	about()
 	{
-		core::perform.add(L"about", L"wtf iz kewl about", this);
+		core::cmdl.add(L"about", L"wtf iz kewl about", this);
 	}
 
 	int usr(std::vector<std::wstring> arg)
@@ -74,7 +74,7 @@ public:
 	}
 } about;
 
-class debug: public core::perform::func {
+class debug: public core::cmdl::opt {
 private:
 	void title()
 	{
@@ -97,7 +97,7 @@ private:
 public:
 	debug()
 	{
-		core::perform.add(L"debug", L"run kewl debug mode (key-capturing test)", this);
+		core::cmdl.add(L"debug", L"run kewl debug mode (key-capturing test)", this);
 	}
 
 	int usr(std::vector<std::wstring> arg)

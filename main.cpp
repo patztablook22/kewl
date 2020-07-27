@@ -4,39 +4,55 @@
  * "lol imma waste my time" ~ patz, d6022
  */
 
-#define VERSION 90	// editing diz may cause unexpected behaviour
+#define VERSION 91	// editing diz may cause unexpected behaviour
 
 // needed libz:
 // #include "libz/ur_package_manager.hpp"
 
 // extern scriptz:
-#include "core.hpp"		// io, exec, perform, serv, cmdz, funcz
+#include "core.hpp"		// io, exec, cmdl, serv, cmdz, funcz
 
 
 int main(int argc, const char *argv[])
 {
-	std::wstring arg;
-	for (int i = 1; i < argc; i++) {
-		if (i != 1)
-			arg += L' ';
-		std::string tmp(argv[i]);
-		arg += std::wstring(tmp.begin(), tmp.end());
-	}
-	if (arg.size() > 0) {
-		std::string tmp;
-		switch (arg[0]) {
-		case L'-':
-			tmp = argv[0];
-			core::perform << std::wstring(tmp.begin(), tmp.end()) + L' ' + arg;
-			arg.clear();
-			break;
-		}
-	}
-	core::io.init();
-	core::exec.macroz.init();
-	core::exec.usr << arg;
-
 	std::wstring input;
+	/* work with cmd line argumentz */
+	{
+		int tmp;
+		for (int i = 0; i < argc; i++) {
+			int j;
+			input += L'"';
+			for (j = 0; j < std::string(argv[i]).size(); j++) {
+				switch (argv[i][j]) {
+				case L'\\':
+					input += L"\\\\";
+					break;
+				case L'"':
+					input += L"\\\"";
+					break;
+				default:
+					input += argv[i][j];
+					break;
+				}
+			}
+			input += L"\" ";
+			if (i == 0)
+				tmp = j + 3;
+
+		}
+
+		if (input.size() > tmp && input.substr(tmp, 3) == L"\"--") {
+			input.erase(tmp + 1, 2);
+			core::cmdl << input;
+			input.clear();
+		}
+		input.erase(0, tmp);
+		core::io.init();
+		core::exec.macroz.init();
+		core::exec.usr << input;
+	}
+
+	/* prompt for input */
 	for (;;) {
 		core::io >> input;
 		if (core::io.trim(input)[0] == '/')
