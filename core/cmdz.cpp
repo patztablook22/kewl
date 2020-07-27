@@ -54,15 +54,19 @@ public:
 				core::io << core::io::msg(L"kewl", L"ERR: no such command: \"" + arg[1] + L"\"");
 				return 1;
 			}
-			core::io << core::io::msg(L"hr", L"");
 			std::vector<std::vector<std::wstring>> man;
 			core::exec.gman(arg[1], man);
-			for (int i = 0; i < man.size(); i++) {
-				for (int j = 0; j < man[i].size(); j++) {
-					core::io << core::io::msg(L"kewl", (j == 0 ?  arg[1] : L"->") + L' ' + man[i][j]);
+			if (man.size() != 0) {
+				core::io << core::io::msg(L"hr", L"");
+				for (int i = 0; i < man.size(); i++) {
+					for (int j = 0; j < man[i].size(); j++) {
+						core::io << core::io::msg(L"kewl", (j == 0 ?  arg[1] : L"->") + L' ' + man[i][j]);
+					}
 				}
+				core::io << core::io::msg(L"hr", L"");
+			} else {
+				core::io << core::io::msg(L"kewl", L"no manual for \"" + arg[1] + L"\" given :c");
 			}
-			core::io << core::io::msg(L"hr", L"");
 		} else {
 			return 2;
 		}
@@ -574,3 +578,57 @@ public:
 		}
 	}
 } ui;
+
+class macroz: public core::exec::cmd {
+public:
+	macroz()
+	{
+		core::exec.add(L"macroz", {{L"howto", L"how to work with macroz"}, {L"list", L"list all macroz"}, {L"reload", L"reload macroz file"}}, this);
+	}
+
+	uint8_t usr(std::vector<std::wstring> arg)
+	{
+		if (arg.size() != 2)
+			return 2;
+		if (arg[1] == L"list") {
+			std::vector<std::wstring> tmp;
+			core::exec.macroz.gmacroz(tmp);
+			if (tmp.size() != 0) {
+				core::io << core::io::msg(L"hr", L"");
+				for (int i = 0; i < tmp.size(); i++)
+					core::io << core::io::msg(L"kewl", tmp[i]);
+				core::io << core::io::msg(L"hr", L"");
+			} else {
+				core::io << core::io::msg(L"kewl", L"no macroz defined");
+			}
+		} else if (arg[1] == L"reload") {
+			core::exec.macroz.load();
+		} else if (arg[1] == L"howto") {
+			std::vector<std::wstring> tmp({ \
+			L"macroz are imported from ~/.kewl_macroz", \
+			L"macro named \"rc\" iz auto-executed at kewl'z startup", \
+			L"u can execute macro as a cmd, but prepend itz name with '_'", \
+			L"~/.kewl_macroz syntax:", \
+			L"macro_name: (1-15 charz, ':' after it!)", \
+			L"[TAB] # diz iz sample macro", \
+			L"[TAB] some_cmd", \
+			L"[TAB] another_etc", \
+			});
+			core::io << core::io::msg(L"hr", L"");
+			for (int i = 0; i < tmp.size(); i++)
+				core::io << core::io::msg(L"kewl", tmp[i]);
+			core::io << core::io::msg(L"hr", L"");
+		} else {
+			return 2;
+		}
+		return 0;
+	}
+
+	void acompl(std::vector<std::wstring> arg, std::vector<std::wstring> &trg)
+	{
+		if (arg.size() != 1)
+			return;
+		trg = {L"howto", L"list", L"reload"};
+	}
+private:
+} macroz;

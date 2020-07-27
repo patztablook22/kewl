@@ -58,7 +58,7 @@ public:
 		std::map<std::wstring, property2 *> propertiez2;
 	} ui;
 
-	void init();
+	void init(bool = true);
 
 	bool iz_k(wint_t);
 	bool iz_k(std::wstring);
@@ -198,6 +198,28 @@ public:
 	void gman(std::wstring, std::vector<std::vector<std::wstring>> &);
 	void cmd_gacompl(std::wstring, std::vector<std::wstring> &);
 	bool iz_cmd(std::wstring);
+
+	class macroz {
+	public:
+		macroz();
+		void init(), load();
+		friend void exec::usr::operator<<(std::wstring);
+		void gmacroz(std::vector<std::wstring> &);
+	private:
+		class macro {
+		public:
+			macro(std::wstring, std::vector<std::wstring> &);
+			void do_it();
+		private:
+			std::vector<std::wstring> content;
+		};
+		bool existz(std::wstring);
+		std::string location;
+		std::map<std::wstring, macro *> da_macroz;
+		std::vector<std::wstring> done;
+
+	} macroz;
+
 private:
 	std::vector<std::wstring> interpreter(std::wstring);
 	std::map<std::wstring, cmd_handler *> cmdz;

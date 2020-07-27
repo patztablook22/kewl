@@ -41,12 +41,6 @@ void io::ui::init()
 
 	new property2(L"passwd_input", L'*');
 	new property2(L"hr", L'-');
-
-	/*
-	passwd *pw = getpwuid(getuid());
-	std::string tmp(pw->pw_dir);
-	core::io << core::io::msg(L"kewl", std::wstring(tmp.begin(), tmp.end()));
-	*/
 }
 
 uint8_t io::ui::set(std::wstring name, std::vector<std::wstring> da_valuez)
@@ -320,7 +314,7 @@ io::io()
 	std::locale::global(std::locale("en_US.UTF-8"));
 }
 
-void io::init()
+void io::init(bool init_ui)
 {
 	initscr();
 	noecho();
@@ -329,7 +323,8 @@ void io::init()
 	start_color();
 	use_default_colors();
 
-	core::io.ui.init();
+	if (init_ui)
+		core::io.ui.init();
 
 	beep_tm.tv_sec = 0;
 	beep_tm.tv_usec = 0;
@@ -369,6 +364,7 @@ bool io::iz_k(std::string chk)
 std::wstring io::trim(std::wstring s)
 {
 	size_t i, done = 0;
+	std::replace(s.begin(), s.end(), 9, 32);
 	while ((i = s.find(32, done)) != std::wstring::npos) {
 		if (i == 0 || i == s.size() - 1 || s[i - 1] == 32 || s[i + 1] == 32)
 			s.erase(i, 1);
@@ -731,16 +727,24 @@ void io::i::acompl::get()
 		if (tmp_pos >= core::io.i.pos) {
 			switch (pre) {
 			case L'/':
-				core::exec.gcmdz(possibz);
+				if (trimmed.size() == 1 || trimmed[1] != L'_') {
+					core::exec.gcmdz(possibz);
+					for (int i = 0; i < possibz.size(); i++)
+						possibz[i].insert(0, 1, L'/');
+				} else {
+					core::exec.macroz.gmacroz(possibz);
+					for (int i = 0; i < possibz.size(); i++)
+						possibz[i].insert(0, L"/_");
+				}
 				break;
 			case L'@':
 				core::serv.status.gotherz(possibz);
+				for (int i = 0; i < possibz.size(); i++)
+					possibz[i].insert(0, 1, L'@');
 				break;
 			default:
 				return;
 			}
-			for (int i = 0; i < possibz.size(); i++)
-				possibz[i].insert(0, 1, pre);
 		} else {
 			if (pre == L'/')
 				core::exec.cmd_gacompl(std::wstring(core::io.i.buf.begin(), core::io.i.buf.begin() + core::io.i.pos), possibz);
@@ -917,7 +921,7 @@ void io::da_erase()
 void io::reset()
 {
 	endwin();
-	init();
+	init(false);
 }
 
 void io::beep(bool interactive)

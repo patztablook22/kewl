@@ -46,7 +46,7 @@ void exec::add(std::wstring name, std::vector<std::vector<std::wstring>> da_man,
 {
 	if (cmdz.find(name) != cmdz.end() || name.size() < 2 || name.size() > 10 || !core::io.iz_k(name))
 		return;
-	if (name.find('/') != std::wstring::npos)
+	if (name.find('/') != std::wstring::npos || name.find(L'_') == 0)
 		return;
 	try {
 			cmdz[name] = new cmd_handler(da_man, da_ptr);
@@ -90,21 +90,52 @@ void exec::usr::operator<<(std::wstring input)
 	std::vector<std::wstring> arg = core::exec.interpreter(input);
 	if (arg.size() == 0 || arg[0].size() == 0 || input[0] == 32)
 		return;
-	if (arg[0].size() > 15) {
-		core::io << core::io::msg(L"kewl", L"ERR: cmdz hav limited size to 15 charz");
-		return;
-	}
-	if (core::exec.cmdz.find(arg[0]) == core::exec.cmdz.end()) {
-		core::io << core::io::msg(L"kewl", L"ERR: command not found: \"" + arg[0] + L"\"");
-		return;
-	}
-	switch (core::exec.cmdz[arg[0]]->gptr()->usr(arg)) {
-	case 0:
-		break;
-	case 2:
-		core::io << core::io::msg(L"kewl", L"ERR: invalid input");
+	switch (arg[0][0]) {
+	case L'_':
+		if (arg.size() != 1) {
+			core::io << core::io::msg(L"kewl", L"ERR: macroz do not take any argument");
+			return;
+		}
+		arg[0].erase(0, 1);
+		if (arg[0].size() == 0)
+			return;
+		if (arg[0].size() > 15) {
+			core::io << core::io::msg(L"kewl", L"ERR: macroz hav limited length to 15 charz");
+			return;
+		}
+		if (!core::exec.macroz.existz(arg[0])) {
+			core::io << core::io::msg(L"kewl", L"ERR: macro not found: \"" + arg[0] + L'"');
+			return;
+		}
+		if (std::find(core::exec.macroz.done.begin(), core::exec.macroz.done.end(), arg[0]) == core::exec.macroz.done.end()) {
+			core::exec.macroz.done.push_back(arg[0]);
+			bool first = core::exec.macroz.done.size() == 1;
+			core::exec.macroz.da_macroz[arg[0]]->do_it();
+			if (first)
+				core::exec.macroz.done.clear();
+		} else {
+			core::io << core::io::msg(L"kewl", L"WARN: skipping recursive macro execution");
+			return;
+		}
 		break;
 	default:
+		if (arg[0].size() > 15) {
+			core::io << core::io::msg(L"kewl", L"ERR: cmdz hav limited length to 15 charz");
+			return;
+		}
+		if (core::exec.cmdz.find(arg[0]) == core::exec.cmdz.end()) {
+			core::io << core::io::msg(L"kewl", L"ERR: command not found: \"" + arg[0] + L'"');
+			return;
+		}
+		switch (core::exec.cmdz[arg[0]]->gptr()->usr(arg)) {
+		case 0:
+			break;
+		case 2:
+			core::io << core::io::msg(L"kewl", L"ERR: invalid input");
+			break;
+		default:
+			break;
+		}
 		break;
 	}
 }
@@ -117,4 +148,116 @@ void exec::serv::operator<<(std::wstring input)
 	if (core::exec.cmdz.find(arg[0]) == core::exec.cmdz.end())
 		return;
 	core::exec.cmdz[arg[0]]->gptr()->serv(arg);
+}
+
+exec::macroz::macroz()
+{
+}
+
+void exec::macroz::init()
+{
+	passwd *pw = getpwuid(getuid());
+	location = pw->pw_dir;
+	location += "/.kewl_macroz";
+	load();;
+	if (existz(L"rc"))
+		da_macroz[L"rc"]->do_it();
+}
+
+void exec::macroz::load()
+{
+	for (const std::pair<std::wstring, macro *> &da_macro: da_macroz)
+		delete da_macro.second;
+	da_macroz.clear();
+	std::wifstream fd(location);
+	std::wstring buf, tmp_name(L"");
+	std::vector<std::wstring> tmp_content;
+	if (!fd.is_open())
+		goto da_return;
+
+	int line;
+	for (line = 1; std::getline(fd, buf); line++) {
+		wint_t ch0 = buf[0];
+		buf = core::io.trim(buf);
+		if (buf.size() == 0)
+			continue;
+		if (buf[0] == L'#')
+			continue;
+		if (!core::io.iz_k(buf)) {
+			core::io << core::io::msg(L"kewl", L"ERR: contains forbidden character/z: line " + std::to_wstring(line));
+			goto da_return;
+		}
+		switch (ch0) {
+		case 9:
+			if (tmp_name.size() == 0) {
+				core::io << core::io::msg(L"kewl", L"ERR: no macro name associated: line " + std::to_wstring(line));
+				goto da_return;
+			}
+			tmp_content.push_back(buf);
+			break;
+		default:
+			if (tmp_name.size() != 0) {
+				if (tmp_content.size() != 0) {
+					new macro(tmp_name, tmp_content);
+					tmp_content.clear();
+				} else {
+					core::io << core::io::msg(L"kewl", L"WARN: skipping empty macro definition: line " + std::to_wstring(line));
+				}
+			}
+
+			if (buf[buf.size() - 1] != L':') {
+				core::io << core::io::msg(L"kewl", L"ERR: there must be ':' after macro name: line " + std::to_wstring(line));
+				goto da_return;
+			}
+			buf.erase(buf.size() - 1);
+			if (buf.size() == 0) {
+				core::io << core::io::msg(L"kewl", L"ERR: empty macro name: line " + std::to_wstring(line));
+				goto da_return;
+			}
+			if (core::exec.macroz.existz(buf)) {
+				core::io << core::io::msg(L"kewl", L"ERR: macro already defined: line " + std::to_wstring(line));
+				goto da_return;
+			}
+			tmp_name = buf;
+			break;
+		}
+	}
+	if (tmp_name.size() != 0) {
+		if (tmp_content.size() != 0) {
+			new macro(tmp_name, tmp_content);
+		} else {
+			core::io << core::io::msg(L"kewl", L"WARN: skipping empty macro definition: line " + std::to_wstring(line));
+		}
+	}
+	da_return:
+	fd.close();
+	core::io << core::io::msg(L"kewl", std::to_wstring(da_macroz.size()) + L" macroz imported");
+}
+
+void exec::macroz::gmacroz(std::vector<std::wstring> &trg)
+{
+	trg.clear();
+	for (const std::pair<std::wstring, macro *> &da_macro: da_macroz)
+		trg.push_back(da_macro.first);
+}
+
+bool exec::macroz::existz(std::wstring da_macro)
+{
+	return da_macroz.find(da_macro) == da_macroz.end() ? false : true;
+}
+
+exec::macroz::macro::macro(std::wstring da_name, std::vector<std::wstring> &da_content)
+{
+	if (da_name.size() == 0 || da_name.size() > 15 || core::exec.macroz.existz(da_name) || da_content.size() == 0)
+		return;
+	content = da_content;
+	core::exec.macroz.da_macroz[da_name] = this;
+}
+
+void exec::macroz::macro::do_it()
+{
+	for (int i = 0; i < content.size(); i++) {
+		core::exec.usr << content[i];
+	}
+	return;
 }

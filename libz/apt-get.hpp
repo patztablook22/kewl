@@ -1,4 +1,5 @@
-#include <iostream>		// std::...
+#include <iostream>		// io stream, surprisingly
+#include <fstream>		// file stream
 #include <ncursesw/ncurses.h>	// interface
 #include <locale>		// UTF-32
 #include <thread>		// std::thread
