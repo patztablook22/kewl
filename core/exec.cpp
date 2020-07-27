@@ -76,6 +76,40 @@ size_t exec::interpreter(std::wstring input, std::vector<std::wstring> &trg, siz
 	return iter;
 }
 
+size_t exec::escape(std::vector<std::wstring> arg, std::wstring &trg, size_t end)
+{
+	trg.clear();
+	for (int i = 0; i <= (end < arg.size() - 1 ? end : arg.size() - 1); i++) {
+		std::wstring tmp;
+		bool parz = false;
+		for (int j = 0; j < arg[i].size(); j++) {
+			wint_t ch = arg[i][j];
+			switch (ch) {
+			case L'\\':
+				tmp += L"\\\\";
+				break;
+			case L'"':
+				tmp += L"\\\"";
+				break;
+			case 32:
+				parz = true;
+			default:
+				tmp += ch;
+				break;
+			}
+		}
+		
+		if (i != 0)
+			trg += L' ';
+		if (parz || tmp.size() == 0)
+			trg += L'"' + tmp + L'"';
+		else
+			trg += tmp;
+		tmp.clear();
+	}
+	return trg.size();
+}
+
 exec::cmd_handler::cmd_handler(std::vector<std::vector<std::wstring>> da_man, cmd *da_ptr)
 {
 	man = da_man;
@@ -201,20 +235,33 @@ void exec::usr::operator<<(std::wstring input)
 
 		if (stfu)
 			core::io.stfu.toggle();
+
 		int rtn = core::exec.cmdz[arg[0]]->gptr()->usr(arg);
+		if (rtn == 0 || rtn == 255) {
+		} else if (rtn >= arg.size()) {
+			core::io << core::io::msg(L"kewl", L"ERR: not enough arguments given!");
+		} else {
+			core::io << core::io::msg(L"kewl", L"ERR: invalid input!");
+			std::wstring err;
+			bool crop = false;
+			int tmp0 = core::exec.escape(arg, input, rtn - 1);
+			if (tmp0 >= 9) {
+				input.erase(0, input.size() - 7);
+				input.insert(0, L"...");
+				tmp0 = input.size();
+			}
+			core::exec.escape({input}, input);
+			int tmp1 = core::exec.escape({arg[rtn]}, err);
+			core::exec.escape({err}, err);
+			if (input[0] == L'"')
+				input = input.substr(1, input.size() - 2);
+			if (err[0] == L'"')
+				err = err.substr(1, err.size() - 2);
+			core::io << core::io::msg(L"kewl", input + L' ' + err + L"\\7 <-[HERE]");
+			core::io << core::io::msg(L"kewl", std::wstring(tmp0 + 1, 32) + L"\\7" + std::wstring(tmp1, L'~'));
+		}
 		if (stfu)
 			core::io.stfu.toggle();
-
-		switch (rtn) {
-		case 0:
-			break;
-		case 2:
-			core::io << core::io::msg(L"kewl", L"ERR: invalid input");
-			break;
-		default:
-			break;
-		}
-		break;
 	}
 }
 
@@ -263,13 +310,13 @@ void exec::macroz::load()
 		if (buf[0] == L'#')
 			continue;
 		if (!core::io.iz_k(buf)) {
-			core::io << core::io::msg(L"kewl", L"ERR: contains forbidden character/z: line " + std::to_wstring(line));
+			core::io << core::io::msg(L"kewl", L"ERR: contains forbidden character/z: \\1line " + std::to_wstring(line));
 			goto da_return;
 		}
 		switch (ch0) {
 		case 9:
 			if (tmp_name.size() == 0) {
-				core::io << core::io::msg(L"kewl", L"ERR: no macro name associated: line " + std::to_wstring(line));
+				core::io << core::io::msg(L"kewl", L"ERR: no macro name associated: \\1line " + std::to_wstring(line));
 				goto da_return;
 			}
 			tmp_content.push_back(buf);
@@ -280,21 +327,21 @@ void exec::macroz::load()
 					new macro(tmp_name, tmp_content);
 					tmp_content.clear();
 				} else {
-					core::io << core::io::msg(L"kewl", L"WARN: skipping empty macro definition: line " + std::to_wstring(line));
+					core::io << core::io::msg(L"kewl", L"WARN: skipping empty macro definition: \\1line " + std::to_wstring(line));
 				}
 			}
 
 			if (buf[buf.size() - 1] != L':') {
-				core::io << core::io::msg(L"kewl", L"ERR: there must be ':' after macro name: line " + std::to_wstring(line));
+				core::io << core::io::msg(L"kewl", L"ERR: there must be ':' after macro name: \\1line " + std::to_wstring(line));
 				goto da_return;
 			}
 			buf.erase(buf.size() - 1);
 			if (buf.size() == 0) {
-				core::io << core::io::msg(L"kewl", L"ERR: empty macro name: line " + std::to_wstring(line));
+				core::io << core::io::msg(L"kewl", L"ERR: empty macro name: \\1line " + std::to_wstring(line));
 				goto da_return;
 			}
 			if (core::exec.macroz.existz(buf)) {
-				core::io << core::io::msg(L"kewl", L"ERR: macro already defined: line " + std::to_wstring(line));
+				core::io << core::io::msg(L"kewl", L"ERR: macro already defined: \\1line " + std::to_wstring(line));
 				goto da_return;
 			}
 			tmp_name = buf;
@@ -305,12 +352,12 @@ void exec::macroz::load()
 		if (tmp_content.size() != 0) {
 			new macro(tmp_name, tmp_content);
 		} else {
-			core::io << core::io::msg(L"kewl", L"WARN: skipping empty macro definition: line " + std::to_wstring(line));
+			core::io << core::io::msg(L"kewl", L"WARN: skipping empty macro definition: \\1line " + std::to_wstring(line));
 		}
 	}
 	da_return:
 	fd.close();
-	core::io << core::io::msg(L"kewl", std::to_wstring(da_macroz.size()) + L" macro/z imported");
+	core::io << core::io::msg(L"kewl", L"\\1" + std::to_wstring(da_macroz.size()) + L"\\0 macro/z imported");
 }
 
 void exec::macroz::gmacroz(std::vector<std::wstring> &trg)

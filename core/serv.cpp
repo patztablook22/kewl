@@ -59,8 +59,8 @@ void serv::conn(std::string hostname, std::string port, std::wstring usr)
 		return;
 	}
 
-	if (usr.find_first_of(L" /") != std::wstring::npos) {
-		core::io << core::io::msg(L"kewl", L"ERR: nick cannot contain \" \" or \"/\"");
+	if (usr.find_first_of(L" /\\") != std::wstring::npos) {
+		core::io << core::io::msg(L"kewl", L"ERR: nick containz forbidden symbol/z (\"/\", \"\\\\\", \" \")");
 		return;
 	}
 	
@@ -142,7 +142,7 @@ void serv::operator>>(int &trg)
 void serv::handler(std::string hostname, std::string port, std::wstring usr)
 {
 	try {
-		core::io << core::io::msg(L"kewl", L"resolving " + std::wstring(hostname.begin(), hostname.end()) + L':' + std::wstring(port.begin(), port.end()) + L"...");
+		core::io << core::io::msg(L"kewl", L"resolving \\1" + std::wstring(hostname.begin(), hostname.end()) + L"\\0 port \\1" + std::wstring(port.begin(), port.end()) + L"\\0...");
 	
 		int bytez, sockfd = open_conn(hostname.c_str(), port.c_str());
 		if (sockfd <= 0) {
@@ -171,11 +171,11 @@ void serv::handler(std::string hostname, std::string port, std::wstring usr)
 		}
 		tmp = SSL_get_cipher(ssl);
 		core::io << core::io::msg(L"serv", L"connection established");
-		core::io << core::io::msg(L"serv", std::wstring(tmp.begin(), tmp.end()) + L" encrypted");
+		core::io << core::io::msg(L"serv", L"\\1" + std::wstring(tmp.begin(), tmp.end()) + L"\\0 encrypted");
 		*this << usr;
 		*this >> buf1;
 		if (buf1[0] == L'p') {
-			core::io << core::io::msg(L"kewl", L"received request for " + std::wstring(buf1 == L"passwd serv" ? L"serv" : L"usr") + L" passwd");
+			core::io << core::io::msg(L"kewl", L"serv requests \\1" + std::wstring(buf1 == L"passwd serv" ? L"serv" : L"usr") + L"\\0 passwd");
 			for (;;) {
 				core::io.send_passwd();
 				*this >> buf1;
@@ -206,11 +206,12 @@ void serv::handler(std::string hostname, std::string port, std::wstring usr)
 		*this >> buf1;
 		switch (buf1[0]) {
 		case L'k':
-			if (buf1.size() > 16 || buf1.size() < 3 || !core::io.iz_k(buf1)) {
+			if (buf1.size() > 19 || buf1.size() < 6 || !core::io.iz_k(buf1)) {
 				disconn();
 				return;
 			}
-			core::serv.status.nick = buf1.substr(1, buf1.size() - 1);
+			core::serv.status.omg = buf1.substr(1, 3);
+			core::serv.status.nick = buf1.substr(4, buf1.size() - 4);
 			break;
 		case L'f':
 			core::io << core::io::msg(L"serv", L"ERR: chatroom iz full");
@@ -289,6 +290,8 @@ int serv::open_conn(const char *hostname, const char *port)
 	}
 
 	sd = socket(AF_INET, SOCK_STREAM, 0);
+
+	core::io << core::io::msg(L"kewl", L"trying to connect...");
 	
 	for (tmp = ai; tmp != NULL; tmp = tmp->ai_next) {
 		if (connect(sd, tmp->ai_addr, tmp->ai_addrlen) != -1)
@@ -345,7 +348,7 @@ void serv::status::draw(int max_x, int max_y)
 	std::wstring tmp;
 	core::io.ui.on(L"attr_frame_base");
 	mvprintw(max_y - 2, 0, "%*s", max_x, "");
-	core::io.ui.off(L"attr_frame_base");
+	core::io.ui.off();
 	tmp = gactive() ? nick : L"---";
 	max_x -= 11 + tmp.size();
 	if (max_x < 0)
@@ -353,44 +356,56 @@ void serv::status::draw(int max_x, int max_y)
 	move(max_y - 2, 1);
 	core::io.ui.on(L"attr_frame_hl");
 	printw("[ ");
-	core::io.ui.off(L"attr_frame_hl");
+	core::io.ui.off();
 	core::io.ui.on(L"attr_frame_base");
 	addwstr(tmp.c_str());
-	core::io.ui.off(L"attr_frame_base");
+	if (gactive()) {
+		max_x -= 6;
+		if (max_x < 0) {
+			core::io.ui.off();
+			core::io.ui.on(L"attr_frame_hl");
+			printw(" ]");
+			core::io.ui.off();
+			return;
+		}
+		printw(" (");
+		addwstr(omg.c_str());
+		printw(")");
+	}
 	core::io.ui.on(L"attr_frame_hl");
 	printw(" ]");
 	tmp = gactive() ? name : L"---";
 	max_x -= 5 + tmp.size();
 	if (max_x < 0) {
-		core::io.ui.off(L"attr_frame_hl");
+		core::io.ui.off();
 		return;
 	}
 	printw(" [ ");
-	core::io.ui.off(L"attr_frame_hl");
+	core::io.ui.off();
 	core::io.ui.on(L"attr_frame_base");
 	addwstr(tmp.c_str());
-	core::io.ui.off(L"attr_frame_base");
+	core::io.ui.off();
 	core::io.ui.on(L"attr_frame_hl");
 	max_x -= 4 + (gactive() ? std::to_wstring(connno()).size() + std::to_wstring(clientz).size() : 2);
 	if (max_x < 0) {
 		printw(" ]");
-		core::io.ui.off(L"attr_frame_hl");
+		core::io.ui.off();
 		return;
 	}
 	printw(" | ");
-	core::io.ui.off(L"attr_frame_hl");
+	core::io.ui.off();
 	core::io.ui.on(L"attr_frame_base");
 	gactive() ? printw("%d", connno()) : printw("?");
-	core::io.ui.off(L"attr_frame_base");
+	core::io.ui.off();
 	core::io.ui.on(L"attr_frame_hl");
 	printw("/");
-	core::io.ui.off(L"attr_frame_hl");
+	core::io.ui.off();
 	core::io.ui.on(L"attr_frame_base");
 	gactive() ? printw("%d", clientz) : printw("?");
-	core::io.ui.off(L"attr_frame_base");
+	core::io.ui.off();
 	core::io.ui.on(L"attr_frame_hl");
 	printw(" ]");
-	core::io.ui.off(L"attr_frame_hl");
+	core::io.ui.off();
 }
 
 void serv::status::draw()

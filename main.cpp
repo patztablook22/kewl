@@ -4,7 +4,7 @@
  * "lol imma waste my time" ~ patz, d6022
  */
 
-#define VERSION 96	// editing diz may cause unexpected behaviour
+#define VERSION 97	// editing diz may cause unexpected behaviour
 
 // needed libz:
 // #include "libz/ur_package_manager.hpp"
@@ -17,36 +17,27 @@ int main(int argc, const char *argv[])
 {
 	std::wstring input;
 	/* work with cmd line argumentz */
-	{
-		int tmp;
-		for (int i = 0; i < argc; i++) {
-			int j;
-			input += L'"';
-			for (j = 0; j < std::string(argv[i]).size(); j++) {
-				switch (argv[i][j]) {
-				case L'\\':
-					input += L"\\\\";
-					break;
-				case L'"':
-					input += L"\\\"";
-					break;
-				default:
-					input += argv[i][j];
-					break;
-				}
-			}
-			input += L"\" ";
-			if (i == 0)
-				tmp = j + 3;
-
+	for (int i = 1; i < argc; i++) {
+		bool opt = false;
+		std::string tmp(argv[i]);
+		std::wstring res(tmp.begin(), tmp.end());
+		if (res.size() == 0)
+			continue;
+		if (res.size() > 2 && res.substr(0, 2) == L"--" && !input.size()) {
+			res.erase(0, 2);
+			opt = true;
 		}
-
-		if (input.size() > tmp && input.substr(tmp, 3) == L"\"--") {
-			input.erase(tmp + 1, 2);
-			core::cmdl << input;
-			input.clear();
+		core::exec.escape({res}, res);
+		if (opt) {
+			tmp = argv[0];
+			std::wstring self(tmp.begin(), tmp.end());
+			core::exec.escape({self}, self);
+			core::cmdl << res + L" " + self;
+		} else {
+			if (input.size() != 0)
+				input+= L' ';
+			input += res;
 		}
-		input.erase(0, tmp);
 	}
 
 	signal(SIGABRT, exit);
@@ -54,6 +45,7 @@ int main(int argc, const char *argv[])
 	signal(SIGINT, exit);
 	signal(SIGHUP, exit);
 	signal(SIGTERM, exit);
+	signal(SIGPIPE, SIG_IGN);
 	
 	core::io.init();
 	core::exec.macroz.init();

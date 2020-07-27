@@ -26,18 +26,26 @@ void io::ui::init()
 	new property0(L"frame_base", {L"blacc", L"wheit", L"normal"});
 	new property0(L"frame_hl", {L"blacc", L"wheit", L"bold"});
 	new property0(L"new_tag", {L"blacc", L"wheit", L"normal"});
+	new property0(L"hr", {L"wheit", L"term_default", L"dim"});
 
 	new property0(L"usr_kewl", {L"wheit", L"term_default", L"bold"});
 	new property0(L"usr_serv", {L"blacc", L"term_default", L"bold"});
+	new property0(L"usr_u", {L"wheit", L"term_default", L"bold"});
 	new property0(L"usr_otherz", {L"wheit", L"term_default", L"dim"});
 	new property0(L"body_kewl", {L"wheit", L"term_default", L"normal"});
 	new property0(L"body_serv", {L"wheit", L"term_default", L"normal"});
+	new property0(L"body_u", {L"wheit", L"term_default", L"normal"});
 	new property0(L"body_otherz", {L"wheit", L"term_default", L"normal"});
-
-	new property0(L"hr", {L"wheit", L"term_default", L"dim"});
-	new property0(L"err", {L"wheit", L"term_default", L"bold"});
-	new property0(L"warn", {L"wheit", L"term_default", L"bold"});
-	new property0(L"private", {L"blacc", L"term_default", L"bold"});
+	new property0(L"body_hl_1", {L"wheit", L"term_default", L"bold"});
+	new property0(L"body_hl_2", {L"wheit", L"term_default", L"bold"});
+	new property0(L"body_hl_3", {L"wheit", L"term_default", L"bold"});
+	new property0(L"body_hl_4", {L"wheit", L"term_default", L"bold"});
+	new property0(L"body_hl_5", {L"wheit", L"term_default", L"bold"});
+	new property0(L"body_hl_6", {L"wheit", L"term_default", L"bold"});
+	new property0(L"body_hl_7", {L"wheit", L"term_default", L"bold"});
+	new property0(L"body_hl_err", {L"wheit", L"term_default", L"bold"});
+	new property0(L"body_hl_warn", {L"wheit", L"term_default", L"bold"});
+	new property0(L"body_hl_private", {L"blacc", L"term_default", L"bold"});
 
 	new property0(L"prompt_normal", {L"wheit", L"term_default", L"normal"});
 	new property0(L"prompt_passwd", {L"wheit", L"term_default", L"bold"});
@@ -46,9 +54,11 @@ void io::ui::init()
 
 	new property1(L"prompt_normal", 0, 8, L"PROMPT> ");
 	new property1(L"prompt_passwd", 0, 8, L"PASSWD> ");
+	new property1(L"usr_before", 0, 4, L"<");
+	new property1(L"usr_after", 0, 4, L"> ");
 
 	new property2(L"passwd_input", L'*');
-	new property2(L"hr", L'-');
+	new property2(L"hr", core::io.ascii ? L'-' : L'┄');
 
 	if (!has_colors())
 		core::io << core::io::msg(L"kewl", L"WARN: ur terminal doez not support colorz");
@@ -68,7 +78,7 @@ uint8_t io::ui::def_col(std::wstring name, std::vector<unsigned int> da_value)
 {
 	if (da_value.size() != 3)
 		return 2;
-	if (name.size() < 3 || name.size() > 8)
+	if (name.size() < 3 || name.size() > 15)
 		return 3;
 	for (int i = 0; i < 3; i++) {
 		if (da_value[i] < 0 || da_value[i] > 1000)
@@ -209,14 +219,15 @@ void io::ui::on(std::wstring name)
 {
 	if (propertiez0.find(name) == propertiez0.end())
 		return;
+	active = name;
 	propertiez0[name]->on();
 }
 
-void io::ui::off(std::wstring name)
+void io::ui::off()
 {
-	if (propertiez0.find(name) == propertiez0.end())
-		return;
-	propertiez0[name]->off();
+	if (active.size() != 0)
+		propertiez0[active]->off();
+	active.clear();
 }
 
 std::wstring io::ui::gstr(std::wstring name)
@@ -347,7 +358,7 @@ bool io::ui::existz(std::wstring name)
 }
 
 io::io()
-:beep_on(true), beep_delay(667)
+:beep_on(true), beep_delay(667), ascii(false)
 {
 	std::locale::global(std::locale("en_US.UTF-8"));
 }
@@ -376,7 +387,14 @@ void io::init(bool init_ui)
 	beep_tm.tv_sec = 0;
 	beep_tm.tv_usec = 0;
 
+	if (init_ui)
+		da_erase();
 	mkwin();
+}
+
+void io::sascii()
+{
+	ascii = true;
 }
 
 io::~io()
@@ -389,9 +407,9 @@ io::~io()
 bool io::iz_k(wint_t chk)
 {
 	if ( \
-		(chk >= 32 && chk <= 176) /* standard ASCII without da weird mess at beginning*/ || \
-		(chk >= 192 && chk != 215 && chk != 247 && chk <= 591) /* some čžech crap */ || \
-		(chk >= 1025 && chk <= 1105) /* cука блять etc. xd */ \
+		(chk >= 32 && chk <= 591) /* ASCII etc. */ || \
+		(chk >= 1025 && chk <= 1105) /* cука блять etc. xd */ || \
+		(chk >= 9472 && chk <= 9679) /* box-drawing charz etc. */ \
 		)
 		return true;
 	return false;
@@ -470,14 +488,10 @@ void io::msg::set(std::wstring da_from, std::wstring da_body)
 		from = L"hr";
 		body = L"";
 		prop0 = L"";
-		prop1 = L"";
-		w0 = 0;
+		len = 0;
 		valid = true;
 		return;
 	}
-
-	if (da_from != std::wstring(L"kewl") && da_from != std::wstring(L"serv"))
-		da_body = core::io.trim(da_body);
 	if (da_from.size() > 15 || da_from.size() < 3 || da_body.size() == 0 || da_body.size() > 255)
 		return;
 	if (da_from.find(32) != std::wstring::npos)
@@ -486,27 +500,59 @@ void io::msg::set(std::wstring da_from, std::wstring da_body)
 		return;
 
 	from = da_from;
-	body = da_body;
+	body.clear();
+	len = 0;
+	bool otherz = from != L"kewl" && from != L"serv";
+	wint_t last = 32;
+	std::wstring w0;
+	for (int i = 0; i < da_body.size(); i++) {
+		switch (da_body[i]) {
+		case L'\\':
+			i++;
+			if (da_body[i] == L'\\' || da_body[i] == L'"') {
+				body += L'\\';
+				body += da_body[i];
+				len++;
+			} else if (!otherz) {
+				body += '\\';
+				body += da_body[i];
+			}
+			break;
+		default:
+			if (da_body[i] == 32 && last == 32 && otherz)
+				break;
+			last = da_body[i];
+			if (last == 32 && !w0.size())
+				w0 = body;
+			body += last;
+			len++;
+			break;
+		}
+	}
+	if (len == 0 || body.size() > 255)
+		return;
 
-	if (from == std::wstring(L"kewl"))
-		prop0 = L"kewl";
-	else if (from == std::wstring(L"serv"))
-		prop0 = L"serv";
-	else
+	if (otherz)
 		prop0 = L"otherz";
-
-	w0 = body.find(' ');
-	if (w0 == std::wstring::npos)
-		w0 = da_body.size();
-
-	if (prop0 != L"otherz" && core::io.trim(body).substr(0, 5) == std::wstring(L"ERR: "))
-		prop1 = L"attr_err";
-	else if (prop0 != L"otherz" && core::io.trim(body).substr(0, 6) == std::wstring(L"WARN: "))
-		prop1 = L"attr_warn";
-	else if (prop0 != L"kewl" && body[0] == L'@' && w0 > 3 && w0 < 17)
-		prop1 = L"attr_private";
+	else if (from == L"kewl")
+		prop0 = L"kewl";
 	else
-		prop1 = L"attr_body_" + prop0;
+		prop0 = L"serv";
+	
+	if (w0 == L"ERR:" && !otherz) {
+		body.insert(0, L"\\e");
+		body.insert(6, L"\\0");
+	} else if (w0 == L"WARN:" && !otherz) {
+		body.insert(0, L"\\w");
+		body.insert(7, L"\\0");
+	} else if (w0[0] == L'@' && w0.size() >= 4 && prop0 != L"kewl") {
+		body.insert(0, L"\\p");
+		body.insert(w0.size() + 2, L"\\0");
+	}
+
+	if (core::serv.status.gactive() && core::serv.status.gnick() == from)
+		prop0 = L"u";
+
 	valid = true;
 }
 
@@ -515,8 +561,7 @@ void io::msg::operator=(msg da_msg)
 	this->from = da_msg.from;
 	this->body = da_msg.body;
 	this->prop0 = da_msg.prop0;
-	this->prop1 = da_msg.prop1;
-	this->w0 = da_msg.w0;
+	this->len = da_msg.len;
 	this->valid = da_msg.valid;
 }
 
@@ -535,14 +580,9 @@ std::wstring io::msg::gprop0()
 	return prop0;
 }
 
-std::wstring io::msg::gprop1()
+uint8_t io::msg::glen()
 {
-	return prop1;
-}
-
-int io::msg::gw0()
-{
-	return w0;
+	return len;
 }
 
 bool io::msg::gvalid()
@@ -737,14 +777,14 @@ void io::i::_draw(int max_x, int max_y)
 	mvprintw(max_y - 1, 0, "%*s", max_x, "");
 	core::io.ui.on(use_passwd ? L"attr_prompt_passwd" : L"attr_prompt_normal");
 	mvaddwstr(max_y - 1, 0, prompt.substr(0, max_x).c_str());
-	core::io.ui.off(use_passwd ? L"attr_prompt_passwd" : L"attr_prompt_normal");
+	core::io.ui.off();
 	core::io.ui.on(use_passwd ? L"attr_input_passwd" : L"attr_input_normal");
 	move(max_y - 1, prompt.substr(0, max_x).size());
 	if (!use_passwd)
 		addwstr(buf.substr(begin, max_x - prompt.substr(0, max_x).size()).c_str());
 	else
 		core::io.ui.echo(L"char_passwd_input", buf.substr(begin, max_x - prompt.substr(0, max_x).size()).size());
-	core::io.ui.off(use_passwd ? L"attr_input_passwd" : L"attr_input_normal");
+	core::io.ui.off();
 	move(max_y - 1, pos - begin + prompt.substr(0, max_x).size());
 	refresh();
 }
@@ -993,11 +1033,21 @@ void io::da_erase()
 	o.pos2 = 0;
 	for (int i = 0; i < 320; i++)
 		o.msgz[i] = core::io::msg();
-	core::io << core::io::msg(L"kewl", L" _              _ ");
-	core::io << core::io::msg(L"kewl", L"| |_______ __ _| |");
-	core::io << core::io::msg(L"kewl", L"| / / -_) V  V / |");
-	core::io << core::io::msg(L"kewl", L"|_\\_\\___|\\_/\\_/|_|");
-	core::io << core::io::msg(L"kewl", o.title);
+	if (!ascii) {
+		core::io << core::io::msg(L"kewl", L"┏━┓                 ┏━━┓");
+		core::io << core::io::msg(L"kewl", L"┃ ┃                 ┗┓ ┃");
+		core::io << core::io::msg(L"kewl", L"┃ ┃┏━┓ ┏━━━┓ ┏━┳━┳━┓ ┃ ┃");
+		core::io << core::io::msg(L"kewl", L"┃ ┗┛ ┃ ┃ ━ ┃ ┃ ┃ ┃ ┃ ┃ ┃");
+		core::io << core::io::msg(L"kewl", L"┃ ┏┓ ┃ ┃ ╺━┫ ┃ ╹ ╹ ┃ ┃ ┗┓");
+		core::io << core::io::msg(L"kewl", L"┗━┛┗━┛ ┗━━━┛ ┗━━━━━┛ ┗━━┛");
+	} else {
+		core::io << core::io::msg(L"kewl", L" _              _ ");
+		core::io << core::io::msg(L"kewl", L"| |_______ __ _| |");
+		core::io << core::io::msg(L"kewl", L"| / / -_) V  V / |");
+		core::io << core::io::msg(L"kewl", L"|_\\\\_\\\\___|\\\\_/\\\\_/|_|");
+	}
+	core::io << core::io::msg(L"kewl", L"Konverzace Everybody Will Like \\2[" + ver_echo(VERSION) + L"]");
+	core::io << core::io::msg(L"hr", L"");
 }
 
 void io::beep(bool interactive)
@@ -1009,7 +1059,18 @@ void io::beep(bool interactive)
 	}
 	timeval tmp;
 	gettimeofday(&tmp, NULL);
-	if (1000000 * (tmp.tv_sec - beep_tm.tv_sec) + tmp.tv_usec - beep_tm.tv_usec < 1000 * beep_delay) {
+	int s = tmp.tv_sec - beep_tm.tv_sec;
+	bool elapsed;
+	if (s < beep_delay / 1000)
+		elapsed = false;
+	else if (s > beep_delay / 1000 + 1)
+		elapsed = true;
+	else if (1000 * s + (tmp.tv_usec - beep_tm.tv_usec) / 1000 >= beep_delay)
+		elapsed = true;
+	else
+		elapsed = false;
+
+	if (!elapsed) {
 		if (interactive)
 			core::io << core::io::msg(L"kewl", L"*delay not elapsed*");
 		return;
@@ -1068,9 +1129,9 @@ void io::stfu::toggle()
 
 io::o::o()
 {
-	title = L"Konverzace Everybody Will Like ";
+	title = L"Konverzace Everybody Will Like [";
 	title += core::io.ver_echo(VERSION);
-	core::io.da_erase();
+	title += ']';
 }
 
 int io::o::glen()
@@ -1092,7 +1153,7 @@ int io::o::glinez(int id, int max_x, int max_y)
 {
 	if (msgz[id].gfrom() == L"hr")
 		return 1;
-	int l = 0, rest = msgz[id].gfrom().size() + msgz[id].gbody().size();
+	int l = 0, rest = msgz[id].gfrom().size() + msgz[id].glen() + core::io.ui.gstr(L"txt_usr_before").size() + core::io.ui.gstr(L"txt_usr_after").size() - 3;
 	while (rest > 0) {
 		rest -= max_x - 4;
 		l++;
@@ -1111,13 +1172,13 @@ void io::o::echo(int id, int max_x, int max_y, int omit0, int omit1)
 		printw("\n ");
 		core::io.ui.on(L"attr_hr");
 		core::io.ui.echo(L"char_hr", max_x - 2);
-		core::io.ui.off(L"attr_hr");
+		core::io.ui.off();
 		return;
 	}
-	int tmp_pos, ltotal = glinez(id, max_x, max_y), lcount = 0, tmp_begin, tmp_inc;
-	std::wstring tmp_from(L"<");
+	int tmp_pos, ltotal = glinez(id, max_x, max_y), lcount = 0, tmp_begin = 0, tmp_inc;
+	std::wstring tmp_from(core::io.ui.gstr(L"txt_usr_before"));
 	tmp_from += msgz[id].gfrom();
-	tmp_from += L"> ";
+	tmp_from += core::io.ui.gstr(L"txt_usr_after");
 	core::io.ui.on(L"attr_usr_" + msgz[id].gprop0());
 	
 	for (tmp_pos = 0;;) {
@@ -1138,37 +1199,89 @@ void io::o::echo(int id, int max_x, int max_y, int omit0, int omit1)
 		}
 		tmp_pos += tmp_inc;
 	}
+	
+	core::io.ui.off();
+	core::io.ui.on(L"attr_body_" + msgz[id].gprop0());
 
-	core::io.ui.off(L"attr_usr_" + msgz[id].gprop0());
-	core::io.ui.on(msgz[id].gprop1());
-
-	for (tmp_pos = 0; tmp_pos < msgz[id].gbody().size();) {
-		if (tmp_pos == 0) {
-			tmp_inc = max_x - tmp_begin - 1;
-		} else {
-			tmp_inc = max_x - 4;
+	tmp_pos = tmp_begin;
+	std::wstring buf;
+	for (int i = 0; i < msgz[id].gbody().size(); i++) {
+		if (tmp_pos == max_x - 1) {
+			if (lcount > omit0 && lcount <= ltotal - omit1)
+				addwstr(buf.c_str());
 			lcount++;
+			buf = L"\n   ";
+			tmp_pos = 3;
 		}
-		bool end_prop1 = (msgz[id].gw0() > tmp_pos && msgz[id].gw0() <= tmp_pos + tmp_inc) ? true : false;
-		if (lcount > omit0 && lcount <= ltotal - omit1) {
-			if (tmp_pos != 0)
-				printw("\n   ");
-			if (!end_prop1) {
-				addwstr(msgz[id].gbody().substr(tmp_pos, tmp_inc).c_str());
-			} else {
-				addwstr(msgz[id].gbody().substr(tmp_pos, msgz[id].gw0() - tmp_pos).c_str());
-				core::io.ui.off(msgz[id].gprop1());
+		wint_t ch = msgz[id].gbody()[i];
+		switch (ch) {
+		case L'\\':
+			if (lcount > omit0 && lcount <= ltotal - omit1)
+				addwstr(buf.c_str());
+			buf.clear();
+			i++;
+			switch (msgz[id].gbody()[i]) {
+			case L'0':
+				core::io.ui.off();
 				core::io.ui.on(L"attr_body_" + msgz[id].gprop0());
-				addwstr(msgz[id].gbody().substr(msgz[id].gw0(), tmp_inc + tmp_pos - msgz[id].gw0()).c_str());
+				break;
+			case L'1':
+				core::io.ui.off();
+				core::io.ui.on(L"attr_body_hl_1");
+				break;
+			case L'2':
+				core::io.ui.off();
+				core::io.ui.on(L"attr_body_hl_2");
+				break;
+			case L'3':
+				core::io.ui.off();
+				core::io.ui.on(L"attr_body_hl_3");
+				break;
+			case L'4':
+				core::io.ui.off();
+				core::io.ui.on(L"attr_body_hl_4");
+				break;
+			case L'5':
+				core::io.ui.off();
+				core::io.ui.on(L"attr_body_hl_5");
+				break;
+			case L'6':
+				core::io.ui.off();
+				core::io.ui.on(L"attr_body_hl_6");
+				break;
+			case L'7':
+				core::io.ui.off();
+				core::io.ui.on(L"attr_body_hl_7");
+				break;
+			case L'e':
+				core::io.ui.off();
+				core::io.ui.on(L"attr_body_hl_err");
+				break;
+			case L'w':
+				core::io.ui.off();
+				core::io.ui.on(L"attr_body_hl_warn");
+				break;
+			case L'p':
+				core::io.ui.off();
+				core::io.ui.on(L"attr_body_hl_private");
+				break;
+			case L'\\':
+			case L'"':
+				tmp_pos++;
+				buf += msgz[id].gbody()[i];
+				break;
 			}
+			break;
+		default:
+			buf += ch;
+			tmp_pos++;
+			break;
 		}
-		if (end_prop1) {
-			core::io.ui.off(msgz[id].gprop1());
-			core::io.ui.on(L"attr_body_" + msgz[id].gprop0());
-		}
-		tmp_pos += tmp_inc;
+			
 	}
-	core::io.ui.off(L"attr_body_" + msgz[id].gprop0());
+	if (lcount > omit0 && lcount <= ltotal - omit1)
+		addwstr(buf.c_str());
+	core::io.ui.off();
 }
 
 void io::o::scrll(bool bacc)
@@ -1294,6 +1407,17 @@ void io::_mkwin()
 		omit1 = tmp_lcount - max_y + 3;
 	}
 
+	/*
+	std::ofstream test("test");
+	test << "begin " << begin << std::endl;
+	test << "  end " << end << std::endl;
+	test << "omit0 " << omit0 << std::endl;
+	test << "omit1 " << omit1 << std::endl;
+	test << " pos0 " << o.gpos0() << std::endl;
+	test << " pos1 " << o.gpos1() << std::endl;
+	*/
+
+
 	for (int j = begin; j >= end; j--) {
 		int tmp_omit0 = 0, tmp_omit1 = 0;
 		if (j == begin)
@@ -1306,13 +1430,13 @@ void io::_mkwin()
 	core::io.ui.on(L"attr_frame_base");
 	mvprintw(0, 0, "%*s", max_x, "");
 	mvaddwstr(0, 1, o.gtitle().substr(0, max_x - 1).c_str());
-	core::io.ui.off(L"attr_frame_base");
+	core::io.ui.off();
 	core::serv.status.draw(max_x, max_y);
 	core::io.ui.on(L"attr_new_tag");
 	if (!(end == 0 && omit1 <= 0) && o.new_msg)
 		mvaddwstr(max_y - 2, max_x - 5, std::wstring(L"_NEW_").substr(0, max_x).c_str());
 	else
 		o.new_msg = false;
-	core::io.ui.off(L"attr_new_tag");
+	core::io.ui.off();
 	i.draw(max_x, max_y);
 }

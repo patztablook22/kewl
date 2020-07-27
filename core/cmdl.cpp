@@ -16,7 +16,7 @@ std::wstring cmdl::opt_handler::gdesc()
 
 void cmdl::add(std::wstring name, std::wstring da_desc, opt *ptr)
 {
-	if (optz.find(name) != optz.end() || name.size() < 3 || name.size() > 10 || !core::io.iz_k(name))
+	if (optz.find(name) != optz.end() || name.size() < 3 || name.size() > 15 || !core::io.iz_k(name))
 		return;
 	try {
 		optz[name] = new opt_handler(da_desc, ptr);
@@ -47,29 +47,17 @@ bool cmdl::iz_opt(std::wstring input)
 void cmdl::operator<<(std::wstring input)
 {
 	std::vector<std::wstring> arg;
-	if (core::exec.interpreter(input, arg) != input.size()) {
+	if (core::exec.interpreter(input, arg) != input.size() || arg.size() != 2) {
 		std::wcerr << L"ERR: interpretation failed\n";
 		std::wcerr << L"maybe wanna use " << arg[0] << L" --help\n";
 		exit(EXIT_FAILURE);
 	}
 
-	if (optz.find(arg[1]) == optz.end()) {
-		std::wcerr << L"ERR: opttion not found: \"" + arg[1] + L"\"\n";
-		std::wcerr << L"maybe wanna use " << arg[0] << L" --help\n";
+	if (optz.find(arg[0]) == optz.end()) {
+		std::wcerr << L"ERR: opttion not found: \"" + arg[0] + L"\"\n";
+		std::wcerr << L"maybe wanna use " << arg[1] << L" --help\n";
 		exit(EXIT_FAILURE);
 	}
 
-	switch (optz[arg[1]]->gptr()->usr(arg)) {
-	case 0:
-		exit(EXIT_SUCCESS);
-		break;
-	case 2:
-		std::wcerr << L"ERR: invalid input\n";
-		std::wcerr << L"maybe wanna use " << arg[0] << L" --help\n";
-		exit(EXIT_FAILURE);	
-		break;
-	default:
-		exit(EXIT_FAILURE);
-		break;
-	}
+	optz[arg[0]]->gptr()->usr(arg[1]);
 }

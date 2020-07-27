@@ -10,7 +10,7 @@ public:
 	public:
 		ui();
 		void init();
-		void on(std::wstring), off(std::wstring);
+		void on(std::wstring), off();
 		std::wstring gstr(std::wstring), grange(std::wstring);
 		void echo(std::wstring, unsigned int);
 		uint8_t set(std::wstring, std::vector<std::wstring>), set(std::wstring, std::wstring), set (std::wstring, wint_t);
@@ -58,10 +58,11 @@ public:
 		std::map<std::wstring, property0 *> propertiez0;
 		std::map<std::wstring, property1 *> propertiez1;
 		std::map<std::wstring, property2 *> propertiez2;
+		std::wstring active;
 	} ui;
 
 	void init(bool = true);
-
+	void sascii();
 	bool iz_k(wint_t);
 	bool iz_k(std::wstring);
 	bool iz_k(std::string); // check if itz allowed to use => only aZ, 09, аЯ, áŽ, ...
@@ -77,13 +78,13 @@ public:
 		void operator=(msg);
 
 		std::wstring gfrom(), gbody();
-		std::wstring gprop0(), gprop1();
-		int gw0();
+		std::wstring gprop0();
+		uint8_t glen();
 		bool gvalid();
 	private:
 		std::wstring from, body;
-		std::wstring prop0, prop1;
-		int w0;
+		std::wstring prop0;
+		uint8_t len;
 		bool valid;
 	};
 	
@@ -171,6 +172,7 @@ private:
 	} o;
 
 	short int default_contentz[8][3];
+	bool ascii;
 } io;
 
 /*********************************************************************************************/
@@ -178,6 +180,7 @@ private:
 class exec {
 public:
 	size_t interpreter(std::wstring, std::vector<std::wstring> &, size_t = -1);
+	size_t escape(std::vector<std::wstring>, std::wstring &, size_t = -1);
 
 	class cmd {
 	public:
@@ -245,7 +248,7 @@ class cmdl {
 public:
 	class opt {
 	public:
-		virtual int usr(std::vector<std::wstring>) = 0;
+		virtual void usr(std::wstring) = 0;
 	};
 
 	class opt_handler {
@@ -303,7 +306,7 @@ public:
 		bool gactive();
 		void join(std::wstring), leave(std::wstring);
 	private:
-		std::wstring nick, name;
+		std::wstring nick, name, omg;
 		std::vector<std::wstring> otherz;
 		unsigned int clientz;
 	} status;
