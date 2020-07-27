@@ -8,7 +8,7 @@ serv::serv()
 
 serv::~serv()
 {
-	core::io.beep_son(false);
+	core::env.set(L"bool_beep_beep", false);
 	if (!status.gactive())
 		return;
 	try {
@@ -51,33 +51,33 @@ void serv::conn(std::string hostname, uint16_t port, std::wstring usr)
 	if (usr.size() == 0) {
 		std::string tmp(getlogin());
 		usr = std::wstring(tmp.begin(), tmp.end());
-		core::io << core::io::msg(L"kewl", L"found ur niccname (\\3" + usr + L"\\0)");
+		core::io << L"found ur niccname (\\3" + usr + L"\\0)";
 	}
 	if (port < 1 || port > 65535)
 		return;
 	if (!core::io.iz_k(usr))
 		return;
 	if (usr.size() < 3 || usr.size() > 15) {
-		core::io << core::io::msg(L"kewl", L"ERR: nick length must be between 3 and 15 charz");
+		core::io << L"ERR: nick length must be between 3 and 15 charz";
 		return;
 	}
 
 	if (usr == L"kewl") {
-		core::io << core::io::msg(L"kewl", L"ERR: ur not kewl enough to use diz nick");
+		core::io << L"ERR: ur not kewl enough to use diz nick";
 		return;
 	}
 	if (usr == L"serv") {
-		core::io << core::io::msg(L"kewl", L"ERR: 01101110 01101111 01110000 01100101");
+		core::io << L"ERR: 01101110 01101111 01110000 01100101";
 		return;
 	}
 
 	if (usr.find_first_of(L" /\\") != std::wstring::npos) {
-		core::io << core::io::msg(L"kewl", L"ERR: nick containz forbidden symbol/z (\"/\", \"\\\\\", \" \")");
+		core::io << L"ERR: nick containz forbidden symbol/z (\"/\", \"\\\\\", \" \")";
 		return;
 	}
 	
 	if (!free) {
-		core::io << core::io::msg(L"kewl", L"ERR: disconn first");
+		core::io << L"ERR: disconn first";
 		return;
 	}
 	free = false;
@@ -89,7 +89,7 @@ void serv::conn(std::string hostname, uint16_t port, std::wstring usr)
 int serv::disconn(bool e = true)
 {
 	if (free && e) {
-		core::io << core::io::msg(L"kewl", L"ERR: no connection alive");
+		core::io << L"ERR: no connection alive";
 		return 1;
 	}
 	if (ssl == NULL)
@@ -111,9 +111,9 @@ int serv::disconn(bool e = true)
 	core::serv.status.omg.clear();
 	core::serv.status.otherz.clear();
 	if (e) {
-		core::io << core::io::msg(L"kewl", L"connection closed");
+		core::io << L"connection closed";
 	} else {
-		core::io << core::io::msg(L"kewl", L"ERR: connection lost");
+		core::io << L"ERR: connection lost";
 		core::io.beep();
 	}
 	free = true;
@@ -175,15 +175,15 @@ void serv::handler(std::string hostname, uint16_t port, std::wstring usr)
 		ssl = SSL_new(ctx);
 		SSL_set_fd(ssl, sockfd);
 		if (SSL_connect(ssl) == -1) {
-			core::io << core::io::msg(L"kewl", L"ERR: SSL perform failed");
+			core::io << L"ERR: SSL perform failed";
 			disconn();
 			return;
 		}
-		core::io << core::io::msg(L"kewl", L"serv found! synchronizing...");
+		core::io << L"serv found! synchronizing...";
 		*this << VERSION;
 		*this >> buf1;
 		if (buf1[0] == 'v') {
-			core::io << core::io::msg(L"serv", L"ERR: " + buf1 + L" required");
+			core::io << core::io::msg(L"serv", L"ERR: " + buf1 + L" reqenvred");
 			disconn();
 			return;
 		}
@@ -193,9 +193,9 @@ void serv::handler(std::string hostname, uint16_t port, std::wstring usr)
 		*this << usr;
 		*this >> buf1;
 		if (buf1[0] == L'p') {
-			core::io << core::io::msg(L"kewl", L"serv requests \\1" + std::wstring(buf1 == L"passwd serv" ? L"serv" : L"usr") + L"\\0 passwd");
+			core::io << L"serv requests \\1" + std::wstring(buf1 == L"passwd serv" ? L"serv" : L"usr") + L"\\0 passwd";
 			for (;;) {
-				core::io.send_passwd();
+				core::io.passwd();
 				*this >> buf1;
 				
 				if (buf1[0] == L'p' || buf1[0] == L'a') {
@@ -215,7 +215,7 @@ void serv::handler(std::string hostname, uint16_t port, std::wstring usr)
 		case L's':
 			break;
 		case L'r':
-			core::io << core::io::msg(L"kewl", L"ERR: diz nick iz registered");
+			core::io << core::io::msg(L"serv", L"ERR: diz nick iz registered");
 		default:
 			disconn();
 			return;
@@ -280,11 +280,11 @@ void serv::handler(std::string hostname, uint16_t port, std::wstring usr)
 			*this >> buf1;
 			if (buf1[0] != L'|') {
 				if (i != 0)
-					core::io << core::io::msg(L"kewl", L"\\2::\\1 EOF");
+					core::io << L"\\2::\\1 EOF";
 				break;
 			}
 			if (i == 0)
-				core::io << core::io::msg(L"kewl", L"\\2::\\1 DOC");
+				core::io << L"\\2::\\1 DOC";
 			core::io << core::io::msg(L"serv", buf1.substr(1, buf1.size() - 1));
 		}
 
@@ -311,7 +311,7 @@ void serv::handler(std::string hostname, uint16_t port, std::wstring usr)
 			if (!buf2.gvalid())
 				continue;
 			if (buf2.gbody()[0] == L'/' && buf2.gfrom() == L"serv") {
-				core::exec.serv << buf2.gbody().substr(1, buf2.gbody().size() - 1);
+				core::exec << buf2.gbody().substr(1, buf2.gbody().size() - 1);
 			} else if (!core::serv.ignore.ignored(buf2.gfrom())) {
 				if (buf2.gfrom() != core::serv.status.gnick())
 					core::io.beep();
@@ -335,10 +335,10 @@ int serv::open_conn(const char *hostname, uint16_t port)
 	hints.ai_protocol = 0;
 	{
 		std::string tmp(hostname);
-		core::io << core::io::msg(L"kewl", L"resolving \\1" + std::wstring(tmp.begin(), tmp.end()) + L"\\0 port \\1" + std::to_wstring(port) + L"\\0...");
+		core::io << L"resolving \\1" + std::wstring(tmp.begin(), tmp.end()) + L"\\0 port \\1" + std::to_wstring(port) + L"\\0...";
 	}
 	if (getaddrinfo(hostname, std::to_string(port).c_str(), &hints, &ai) != 0) {
-		core::io << core::io::msg(L"kewl", L"ERR: resolving failed");
+		core::io << L"ERR: resolving failed";
 		return 0;
 	}
 
@@ -348,18 +348,18 @@ int serv::open_conn(const char *hostname, uint16_t port)
 	timeout.tv_sec = 10;
 	timeout.tv_usec = 0;
 	if (setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) != 0) {
-		core::io << core::io::msg(L"kewl", L"ERR: setsockopt failed");
+		core::io << L"ERR: setsockopt failed";
 		return 0;
 	}
 
-	core::io << core::io::msg(L"kewl", L"trying 2 connect...");
+	core::io << L"trying 2 connect...";
 	
 	for (tmp = ai; tmp != NULL; tmp = tmp->ai_next) {
 		if (connect(sd, tmp->ai_addr, tmp->ai_addrlen) != -1)
 			break;
 	}
 	if (tmp == NULL) {
-		core::io << core::io::msg(L"kewl", L"ERR: connect failed");
+		core::io << L"ERR: connect failed";
 		return 0;
 	}
 
@@ -409,73 +409,73 @@ bool serv::status::gactive()
 void serv::status::draw(int max_x, int max_y)
 {
 	std::wstring tmp;
-	core::io.ui.on(L"attr_statusbar_placeholder");
+	core::env.on(L"attr_statusbar_placeholder");
 	mvprintw(max_y - 2, 0, "%*s", max_x, "");
-	core::io.ui.off();
+	core::env.off();
 	tmp = gactive() ? nick : L"---";
 	max_x -= 11 + tmp.size();
 	if (max_x < 0)
 		return;
 	move(max_y - 2, 1);
-	core::io.ui.on(L"attr_statusbar_hl");
+	core::env.on(L"attr_statusbar_hl");
 	printw("[ ");
-	core::io.ui.off();
-	core::io.ui.on(L"attr_statusbar_base");
+	core::env.off();
+	core::env.on(L"attr_statusbar_base");
 	addwstr(tmp.c_str());
 	if (gactive()) {
 		max_x -= 6;
 		if (max_x < 0) {
-			core::io.ui.off();
-			core::io.ui.on(L"attr_statusbar_hl");
+			core::env.off();
+			core::env.on(L"attr_statusbar_hl");
 			printw(" ]");
-			core::io.ui.off();
+			core::env.off();
 			return;
 		}
 		printw(" (");
 		addwstr(omg.c_str());
 		printw(")");
 	}
-	core::io.ui.on(L"attr_statusbar_hl");
+	core::env.on(L"attr_statusbar_hl");
 	printw(" ]");
 	tmp = gactive() ? name : L"---";
 	max_x -= 5 + tmp.size();
 	if (max_x < 0) {
-		core::io.ui.off();
+		core::env.off();
 		return;
 	}
-	core::io.ui.off();
-	core::io.ui.on(L"attr_statusbar_placeholder");
+	core::env.off();
+	core::env.on(L"attr_statusbar_placeholder");
 	printw(" ");
-	core::io.ui.off();
-	core::io.ui.on(L"attr_statusbar_hl");
+	core::env.off();
+	core::env.on(L"attr_statusbar_hl");
 	printw("[ ");
-	core::io.ui.off();
-	core::io.ui.on(L"attr_statusbar_base");
+	core::env.off();
+	core::env.on(L"attr_statusbar_base");
 	addwstr(tmp.c_str());
-	core::io.ui.off();
-	core::io.ui.on(L"attr_statusbar_hl");
+	core::env.off();
+	core::env.on(L"attr_statusbar_hl");
 	max_x -= 4 + (gactive() ? std::to_wstring(connno()).size() + std::to_wstring(clientz).size() : 2);
 	if (max_x < 0) {
 		printw(" ]");
-		core::io.ui.off();
+		core::env.off();
 		return;
 	}
 	printw(" | ");
-	core::io.ui.off();
-	core::io.ui.on(L"attr_statusbar_base");
+	core::env.off();
+	core::env.on(L"attr_statusbar_base");
 	gactive() ? printw("%d", connno()) : printw("?");
 	printw("/");
 	gactive() ? printw("%d", clientz) : printw("?");
-	core::io.ui.off();
-	core::io.ui.on(L"attr_statusbar_hl");
+	core::env.off();
+	core::env.on(L"attr_statusbar_hl");
 	printw(" ]");
-	core::io.ui.off();
+	core::env.off();
 }
 
 void serv::status::draw()
 {
 	int max_x, max_y;
-	getmaxyx(stdscr, max_y, max_x);
+	basis::termxy(max_x, max_y);
 	draw(max_x, max_y);
 }
 
@@ -613,7 +613,7 @@ uint8_t serv::ping::do_it(uint8_t da_n)
 	sum.tv_sec = 0;
 	sum.tv_usec = 0;
 	seq = 0;
-	core::io << core::io::msg(L"kewl", L"PING \"" + core::serv.status.gname() + L"\" 44 bytez packet/z");
+	core::io << L"PING \"" + core::serv.status.gname() + L"\" 64 bytez packet/z";
 	snd();
 	return 0;
 }
@@ -654,7 +654,7 @@ void serv::ping::recv(uint8_t da_id)
 		min = ms;
 	if (ms > max || seq == 1)
 		max = ms;
-	core::io << core::io::msg(L"kewl", L"64 bytez from \"" + core::serv.status.gname() + L"\"; seq=\\1" + std::to_wstring(seq) + L"\\0 time=\\1" + std::to_wstring(ms / 10) + L'.' + std::to_wstring(ms % 10) + L"\\0ms");
+	core::io << L"64 bytez from \"" + core::serv.status.gname() + L"\"; seq=\\1" + std::to_wstring(seq) + L"\\0 time=\\1" + std::to_wstring(ms / 10) + L'.' + std::to_wstring(ms % 10) + L"\\0ms";
 	if (seq >= n) {
 		statz();
 		return;
@@ -669,12 +669,12 @@ void serv::ping::statz()
 {
 	if (n == 0)
 		return;
-	core::io << core::io::msg(L"kewl", L'"' + core::serv.status.gname() + L"\"'z ping statz:");
+	core::io << L'"' + core::serv.status.gname() + L"\"'z ping statz:";
 	unsigned long long int ms = sum.tv_sec;
 	ms *= (unsigned long long int)10000;
 	ms += (unsigned long long int)sum.tv_usec / (unsigned long long int)100;
 	ms /= n;
-	core::io << core::io::msg(L"kewl", L"\\1" + std::to_wstring(n) + L"\\0 packet/z, min=\\1" + std::to_wstring(min / 10) + L'.' + std::to_wstring(min % 10) + L"\\0, avg=\\1" + std::to_wstring(ms / 10) + L'.' + std::to_wstring(ms % 10) + L"\\0ms, max=\\1" + std::to_wstring(max / 10) + L'.' + std::to_wstring(max % 10) + L"\\0ms");
+	core::io << L"\\1" + std::to_wstring(n) + L"\\0 packet/z, min=\\1" + std::to_wstring(min / 10) + L'.' + std::to_wstring(min % 10) + L"\\0, avg=\\1" + std::to_wstring(ms / 10) + L'.' + std::to_wstring(ms % 10) + L"\\0ms, max=\\1" + std::to_wstring(max / 10) + L'.' + std::to_wstring(max % 10) + L"\\0ms";
 	n = 0;
 }
 
@@ -683,6 +683,6 @@ uint8_t serv::ping::cancel()
 	if (n == 0)
 		return 1;
 	n = 0;
-	core::io << core::io::msg(L"kewl", L"WARN: ping process interrupted");
+	core::io << L"WARN: ping process interrupted";
 	return 0;
 }
