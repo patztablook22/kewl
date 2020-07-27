@@ -8,6 +8,7 @@ serv::serv()
 
 serv::~serv()
 {
+	core::io.beep_son(false);
 	if (!status.gactive())
 		return;
 	try {
@@ -94,8 +95,10 @@ int serv::disconn(bool e)
 	close(sockfd);
 	std::wstring tmp_nick = core::serv.status.nick;
 	core::serv.status.clientz = 0;
+	core::serv.status.active = false;
 	core::serv.status.name.clear();
 	core::serv.status.nick.clear();
+	core::serv.status.omg.clear();
 	core::serv.status.otherz.clear();
 	if (e) {
 		core::io << core::io::msg(L"kewl", L"connection closed");
@@ -111,6 +114,10 @@ void serv::operator>>(core::io::msg &trg)
 {
 	std::wstring buf;
 	*this >> buf;
+	if (buf.size() == 0) {
+		trg = core::io::msg(L"", L"");
+		return;
+	}
 	int pos = buf.find(32);
 	if (pos == std::wstring::npos || pos == 0 || pos == buf.size())
 		throw 1;
@@ -119,10 +126,17 @@ void serv::operator>>(core::io::msg &trg)
 
 void serv::operator>>(std::wstring &trg)
 {
+	trg.clear();
 	if (ssl == NULL)
 		throw 1;
 	wchar_t buf[1024];
-	int bytez = SSL_read(ssl, &buf, sizeof(buf));
+	int bytez, da_errno;
+	do {
+		bytez = SSL_read(ssl, &buf, sizeof(buf));
+		da_errno = errno;
+		if (status.gactive())
+			*this << L"/";
+	} while (bytez <= 0 && status.gactive() && da_errno == EAGAIN);
 	if (bytez <= 0)
 		throw 1;
 	buf[bytez / 4] = 0;
@@ -257,16 +271,38 @@ void serv::handler(std::string hostname, std::string port, std::wstring usr)
 		core::serv.status.name = buf1;
 		core::io.mkwin();
 
+		*this << L"k";
+		*this >> buf1;
+		{
+			int tmp = std::stoi(buf1);
+			timeval timeout;
+			if (tmp > 1) {
+				timeout.tv_sec = tmp * 3 / 4;
+				timeout.tv_usec = 0;
+			} else {
+				timeout.tv_sec = 0;
+				timeout.tv_usec = 500000;
+			}
+			if (setsockopt(SSL_get_fd(ssl), SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0) {
+				disconn(false);
+				return;
+			}
+		}
+
 		*this << L"sniffing";
+		status.active = true;
 		core::io::msg buf2;
 		for (;;) {
 			*this >> buf2;
-			if (buf2.gfrom() != core::serv.status.nick && buf2.gfrom() != L"kewl" && buf2.gbody()[0] != L'/')
-				core::io.beep();
-			if (buf2.gbody()[0] == L'/' && buf2.gfrom() == L"serv")
+			if (!buf2.gvalid())
+				continue;
+			if (buf2.gbody()[0] == L'/' && buf2.gfrom() == L"serv") {
 				core::exec.serv << buf2.gbody().substr(1, buf2.gbody().size() - 1);
-			else
+			} else if (!core::serv.ignore.ignored(buf2.gfrom())) {
+				if (buf2.gfrom() != core::serv.status.gnick())
+					core::io.beep();
 				core::io << buf2;
+			}
 		}
 	} catch (...) {
 		disconn(false);
@@ -333,20 +369,22 @@ void serv::certz_echo(SSL *ssl)
 serv::status::status()
 {
 	nick.clear();
+	omg.clear();
 	name.clear();
 	otherz.clear();
 	clientz = 0;
+	active = false;
 }
 
 bool serv::status::gactive()
 {
-	return (clientz > 0);
+	return active;
 }
 
 void serv::status::draw(int max_x, int max_y)
 {
 	std::wstring tmp;
-	core::io.ui.on(L"attr_frame_base");
+	core::io.ui.on(L"attr_statusbar_placeholder");
 	mvprintw(max_y - 2, 0, "%*s", max_x, "");
 	core::io.ui.off();
 	tmp = gactive() ? nick : L"---";
@@ -354,16 +392,16 @@ void serv::status::draw(int max_x, int max_y)
 	if (max_x < 0)
 		return;
 	move(max_y - 2, 1);
-	core::io.ui.on(L"attr_frame_hl");
+	core::io.ui.on(L"attr_statusbar_hl");
 	printw("[ ");
 	core::io.ui.off();
-	core::io.ui.on(L"attr_frame_base");
+	core::io.ui.on(L"attr_statusbar_base");
 	addwstr(tmp.c_str());
 	if (gactive()) {
 		max_x -= 6;
 		if (max_x < 0) {
 			core::io.ui.off();
-			core::io.ui.on(L"attr_frame_hl");
+			core::io.ui.on(L"attr_statusbar_hl");
 			printw(" ]");
 			core::io.ui.off();
 			return;
@@ -372,7 +410,7 @@ void serv::status::draw(int max_x, int max_y)
 		addwstr(omg.c_str());
 		printw(")");
 	}
-	core::io.ui.on(L"attr_frame_hl");
+	core::io.ui.on(L"attr_statusbar_hl");
 	printw(" ]");
 	tmp = gactive() ? name : L"---";
 	max_x -= 5 + tmp.size();
@@ -380,12 +418,17 @@ void serv::status::draw(int max_x, int max_y)
 		core::io.ui.off();
 		return;
 	}
-	printw(" [ ");
 	core::io.ui.off();
-	core::io.ui.on(L"attr_frame_base");
+	core::io.ui.on(L"attr_statusbar_placeholder");
+	printw(" ");
+	core::io.ui.off();
+	core::io.ui.on(L"attr_statusbar_hl");
+	printw("[ ");
+	core::io.ui.off();
+	core::io.ui.on(L"attr_statusbar_base");
 	addwstr(tmp.c_str());
 	core::io.ui.off();
-	core::io.ui.on(L"attr_frame_hl");
+	core::io.ui.on(L"attr_statusbar_hl");
 	max_x -= 4 + (gactive() ? std::to_wstring(connno()).size() + std::to_wstring(clientz).size() : 2);
 	if (max_x < 0) {
 		printw(" ]");
@@ -394,16 +437,12 @@ void serv::status::draw(int max_x, int max_y)
 	}
 	printw(" | ");
 	core::io.ui.off();
-	core::io.ui.on(L"attr_frame_base");
+	core::io.ui.on(L"attr_statusbar_base");
 	gactive() ? printw("%d", connno()) : printw("?");
-	core::io.ui.off();
-	core::io.ui.on(L"attr_frame_hl");
 	printw("/");
-	core::io.ui.off();
-	core::io.ui.on(L"attr_frame_base");
 	gactive() ? printw("%d", clientz) : printw("?");
 	core::io.ui.off();
-	core::io.ui.on(L"attr_frame_hl");
+	core::io.ui.on(L"attr_statusbar_hl");
 	printw(" ]");
 	core::io.ui.off();
 }
@@ -447,4 +486,81 @@ void serv::status::leave(std::wstring da_usr)
 		return;
 	if (da_usr != nick)
 		otherz.erase(otherz.begin() + pos);
+}
+
+void serv::status::chomg(wchar_t perm, uint8_t val)
+{
+	uint8_t pos;
+	switch (perm) {
+	case L'o':
+		pos = 0;
+		break;
+	case L'm':
+		pos = 1;
+		break;
+	case L'g':
+		pos = 2;
+		break;
+	default:
+		return;
+	}
+	wchar_t da_val = L'-';
+	if (val == 1) {
+		da_val = perm;
+	} else if (val == 2) {
+		switch (perm) {
+		case L'o':
+			da_val = L'O';
+			break;
+		case L'm':
+			da_val = L'M';
+			break;
+		case L'g':
+			da_val = L'G';
+			break;
+		}
+	}
+	omg[pos] = da_val;
+	core::io.mkwin();
+}
+
+void serv::ignore::glist(std::vector<std::wstring> &trg)
+{
+	trg = list;
+}
+
+bool serv::ignore::ignored(std::wstring nicc)
+{
+	if (nicc != core::serv.status.gnick() && std::find(list.begin(), list.end(), nicc) != list.end())
+		return true;
+	return false;
+}
+
+uint8_t serv::ignore::add(std::wstring nicc)
+{
+	if (nicc.size() < 3 || nicc.size() > 15)
+		return 2;
+	if (nicc == L"kewl" || nicc == L"serv")
+		return 3;
+	if (ignored(nicc))
+		return 1;
+	list.push_back(nicc);
+	return 0;
+}
+
+uint8_t serv::ignore::remove(std::wstring nicc)
+{
+	int pos = std::find(list.begin(), list.end(), nicc) - list.begin();
+	if (pos == list.size())
+		return 1;
+	list.erase(list.begin() + pos, list.begin() + pos + 1);
+	return 0;
+}
+
+uint8_t serv::ignore::clear()
+{
+	if (list.size() == 0)
+		return 1;
+	list.clear();
+	return 0;
 }

@@ -23,11 +23,14 @@ void io::ui::init()
 	propertiez1.clear();
 	propertiez2.clear();
 
-	new property0(L"frame_base", {L"blacc", L"wheit", L"normal"});
-	new property0(L"frame_hl", {L"blacc", L"wheit", L"bold"});
+	new property0(L"header", {L"blacc", L"wheit", L"normal"});
+	new property0(L"statusbar_placeholder", {L"blacc", L"wheit", L"normal"});
+	new property0(L"statusbar_base", {L"blacc", L"wheit", L"normal"});
+	new property0(L"statusbar_hl", {L"blacc", L"wheit", L"bold"});
 	new property0(L"new_tag", {L"blacc", L"wheit", L"normal"});
 	new property0(L"hr", {L"wheit", L"term_default", L"dim"});
 
+	new property0(L"time", {L"blacc", L"term_default", L"bold"});
 	new property0(L"usr_kewl", {L"wheit", L"term_default", L"bold"});
 	new property0(L"usr_serv", {L"blacc", L"term_default", L"bold"});
 	new property0(L"usr_u", {L"wheit", L"term_default", L"bold"});
@@ -54,11 +57,19 @@ void io::ui::init()
 
 	new property1(L"prompt_normal", 0, 8, L"PROMPT> ");
 	new property1(L"prompt_passwd", 0, 8, L"PASSWD> ");
-	new property1(L"usr_before", 0, 4, L"<");
+	new property1(L"time_before", 0, 2, L"");
+	new property1(L"time_after", 0, 2, L"");
+	new property1(L"usr_before", 0, 4, L" <");
 	new property1(L"usr_after", 0, 4, L"> ");
 
 	new property2(L"passwd_input", L'*');
 	new property2(L"hr", core::io.ascii ? L'-' : L'┄');
+
+	new property3(L"output_scrollbucc", 128, 4096, 512);
+	new property3(L"input_scrollbucc", 0, 256, 64);
+	new property3(L"usr_max_padding", 0, 15, 0);
+
+	new property4(L"show_time", L"TRU");
 
 	if (!has_colors())
 		core::io << core::io::msg(L"kewl", L"WARN: ur terminal doez not support colorz");
@@ -66,22 +77,22 @@ void io::ui::init()
 		core::io << core::io::msg(L"kewl", L"WARN: ur terminal cannot redefine colorz");
 }
 
-uint8_t io::ui::set(std::wstring name, std::vector<std::wstring> da_valuez)
+uint8_t io::ui::set(std::wstring name, std::vector<std::wstring> da_valz)
 {
 	if (propertiez0.find(name) == propertiez0.end())
 		return 1;
 
-	return propertiez0[name]->svaluez(da_valuez);
+	return propertiez0[name]->svalz(da_valz);
 }
 
-uint8_t io::ui::def_col(std::wstring name, std::vector<unsigned int> da_value)
+uint8_t io::ui::def_col(std::wstring name, std::vector<unsigned int> da_val)
 {
-	if (da_value.size() != 3)
+	if (da_val.size() != 3)
 		return 2;
 	if (name.size() < 3 || name.size() > 15)
 		return 3;
 	for (int i = 0; i < 3; i++) {
-		if (da_value[i] < 0 || da_value[i] > 1000)
+		if (da_val[i] < 0 || da_val[i] > 1000)
 			return 4 + i;
 	}
 	if (!can_change_color())
@@ -90,10 +101,10 @@ uint8_t io::ui::def_col(std::wstring name, std::vector<unsigned int> da_value)
 	if (colorz.find(name) == colorz.end()) {
 		if (colorz.size() > COLORS)
 			return 1;
-		init_color(colorz.size(), da_value[0], da_value[1], da_value[2]);
+		init_color(colorz.size(), da_val[0], da_val[1], da_val[2]);
 		colorz[name] = colorz.size();
 	} else {
-		if (init_color(colorz[name], da_value[0], da_value[1], da_value[2]) == ERR)
+		if (init_color(colorz[name], da_val[0], da_val[1], da_val[2]) == ERR)
 			return -1;
 	}
 	return 0;	
@@ -107,6 +118,10 @@ uint8_t io::ui::reset(std::wstring name)
 		propertiez1[name]->reset();
 	else if (propertiez2.find(name) != propertiez2.end())
 		propertiez2[name]->reset();
+	else if (propertiez3.find(name) != propertiez3.end())
+		propertiez3[name]->reset();
+	else if (propertiez4.find(name) != propertiez4.end())
+		propertiez4[name]->reset();
 	else
 		return 1;
 	return 0;
@@ -119,6 +134,10 @@ void io::ui::reset()
 	for (const std::pair<std::wstring, property1 *> &name: propertiez1)
 		name.second->reset();
 	for (const std::pair<std::wstring, property2 *> &name: propertiez2)
+		name.second->reset();
+	for (const std::pair<std::wstring, property3 *> &name: propertiez3)
+		name.second->reset();
+	for (const std::pair<std::wstring, property4 *> &name: propertiez4)
 		name.second->reset();
 }
 
@@ -145,6 +164,10 @@ void io::ui::gpropertiez(std::vector<std::wstring> &trg)
 		trg.push_back(property.first);
 	for (const std::pair<std::wstring, property2 *> property: propertiez2)
 		trg.push_back(property.first);
+	for (const std::pair<std::wstring, property3 *> property: propertiez3)
+		trg.push_back(property.first);
+	for (const std::pair<std::wstring, property4 *> property: propertiez4)
+		trg.push_back(property.first);
 }
 
 io::ui::property0::property0(std::wstring name, std::vector<std::wstring> da_defaultz)
@@ -168,29 +191,29 @@ io::ui::property0::property0(std::wstring name, std::vector<std::wstring> da_def
 
 	core::io.ui.propertiez0[L"attr_" + name] = this;
 	id = core::io.ui.propertiez0.size();
-	svaluez(da_defaultz);
+	svalz(da_defaultz);
 }
 
-uint8_t io::ui::property0::svaluez(std::vector<std::wstring> da_valuez)
+uint8_t io::ui::property0::svalz(std::vector<std::wstring> da_valz)
 {
-	if (da_valuez.size() != 3)
+	if (da_valz.size() != 3)
 		return 2;
-	if (core::io.ui.colorz.find(da_valuez[0]) == core::io.ui.colorz.end())
+	if (core::io.ui.colorz.find(da_valz[0]) == core::io.ui.colorz.end())
 		return 3;
-	if (core::io.ui.colorz.find(da_valuez[1]) == core::io.ui.colorz.end())
+	if (core::io.ui.colorz.find(da_valz[1]) == core::io.ui.colorz.end())
 		return 4;
-	if (core::io.ui.weightz.find(da_valuez[2]) == core::io.ui.weightz.end())
+	if (core::io.ui.weightz.find(da_valz[2]) == core::io.ui.weightz.end())
 		return 5;
-	unsigned int new_valuez[3];
-	new_valuez[0] = core::io.ui.colorz[da_valuez[0]];
-	new_valuez[1] = core::io.ui.colorz[da_valuez[1]];
-	new_valuez[2] = core::io.ui.weightz[da_valuez[2]];
+	unsigned int new_valz[3];
+	new_valz[0] = core::io.ui.colorz[da_valz[0]];
+	new_valz[1] = core::io.ui.colorz[da_valz[1]];
+	new_valz[2] = core::io.ui.weightz[da_valz[2]];
 	bool sacv = false;
-	if (valuez[0] == new_valuez[0] && valuez[1] == new_valuez[1] && valuez[2] == new_valuez[2]) 
+	if (valz[0] == new_valz[0] && valz[1] == new_valz[1] && valz[2] == new_valz[2]) 
 		sacv = true;
 	for (int i = 0; i < 3; i++)
-		valuez[i] = new_valuez[i];
-	init_pair(id, valuez[0], valuez[1]);
+		valz[i] = new_valz[i];
+	init_pair(id, valz[0], valz[1]);
 	core::io.mkwin();
 	return sacv ? -1 : 0;
 }
@@ -198,21 +221,21 @@ uint8_t io::ui::property0::svaluez(std::vector<std::wstring> da_valuez)
 void io::ui::property0::reset()
 {
 	for (int i = 0; i < 3; i++)
-		valuez[i] = defaultz[i];
-	init_pair(id, valuez[0], valuez[1]);
+		valz[i] = defaultz[i];
+	init_pair(id, valz[0], valz[1]);
 	core::io.mkwin();
 }
 
 void io::ui::property0::on()
 {
 	attron(COLOR_PAIR(id));
-	attron(valuez[2]);
+	attron(valz[2]);
 }
 
 void io::ui::property0::off()
 {
 	attroff(COLOR_PAIR(id));
-	attroff(valuez[2]);
+	attroff(valz[2]);
 }
 
 void io::ui::on(std::wstring name)
@@ -234,14 +257,30 @@ std::wstring io::ui::gstr(std::wstring name)
 {
 	if (propertiez1.find(name) == propertiez1.end())
 		return L"";
-	return propertiez1[name]->gstr();
+	return propertiez1[name]->gval();
 }
 
 std::wstring io::ui::grange(std::wstring name)
 {
-	if (propertiez1.find(name) == propertiez1.end())
-		return L"";
-	return propertiez1[name]->grange();
+	if (propertiez1.find(name) != propertiez1.end())
+		return propertiez1[name]->grange();
+	else if (propertiez3.find(name) != propertiez3.end())
+		return propertiez3[name]->grange();
+	return L"";
+}
+
+int io::ui::gint(std::wstring name)
+{
+	if (propertiez3.find(name) == propertiez3.end())
+		return 0;
+	return propertiez3[name]->gval();
+}
+
+bool io::ui::gtru(std::wstring name)
+{
+	if (propertiez4.find(name) == propertiez4.end())
+		return true;
+	return propertiez4[name]->gval();
 }
 
 io::ui::property1::property1(std::wstring name, unsigned int min, unsigned int max, std::wstring ddd)
@@ -258,38 +297,40 @@ io::ui::property1::property1(std::wstring name, unsigned int min, unsigned int m
 	range[0] = min;
 	range[1] = max;
 	da_default = ddd;
-	svalue(ddd);
+	sval(ddd);
 	core::io.ui.propertiez1[L"txt_" + name] = this;
 }
 
-uint8_t io::ui::set(std::wstring name, std::wstring da_value)
+uint8_t io::ui::set(std::wstring name, std::wstring da_val)
 {
-	if (propertiez1.find(name) == propertiez1.end())
-		return 1;
-	return propertiez1[name]->svalue(da_value);
+	if (propertiez1.find(name) != propertiez1.end())
+		return propertiez1[name]->sval(da_val);
+	if (propertiez4.find(name) != propertiez4.end())
+		return propertiez4[name]->sval(da_val);
+	return 1;
 }
 
-uint8_t io::ui::property1::svalue(std::wstring da_value)
+uint8_t io::ui::property1::sval(std::wstring da_val)
 {
-	if (da_value.size() < range[0] || da_value.size() > range[1] || !core::io.iz_k(da_value))
+	if (da_val.size() < range[0] || da_val.size() > range[1] || !core::io.iz_k(da_val))
 		return 3;
 	bool sacv = false;
-	if (da_value == value)
+	if (da_val == val)
 		sacv = true;
-	value = da_value;
+	val = da_val;
 	core::io.mkwin();
 	return sacv ? -1 : 0;
 }
 
 void io::ui::property1::reset()
 {
-	value = da_default;
+	val = da_default;
 	core::io.mkwin();
 }
 
-std::wstring io::ui::property1::gstr()
+std::wstring io::ui::property1::gval()
 {
-	return value;
+	return val;
 }
 
 std::wstring io::ui::property1::grange()
@@ -306,7 +347,7 @@ io::ui::property2::property2(std::wstring name, wint_t ddd)
 		return;
 	}
 	da_default = ddd;
-	svalue(da_default);
+	sval(da_default);
 	core::io.ui.propertiez2[L"char_" + name] = this;
 }
 
@@ -319,31 +360,125 @@ void io::ui::echo(std::wstring name, unsigned int n)
 
 void io::ui::property2::echo(unsigned int n)
 {
-	addwstr(std::wstring(n, value).c_str());
+	addwstr(std::wstring(n, val).c_str());
 }
 
-uint8_t io::ui::set(std::wstring name, wint_t da_value)
+uint8_t io::ui::set(std::wstring name, wint_t da_val)
 {
 	if (propertiez2.find(name) == propertiez2.end())
 		return 1;
-	return propertiez2[name]->svalue(da_value);
+	return propertiez2[name]->sval(da_val);
 }
 
-uint8_t io::ui::property2::svalue(wint_t da_value)
+uint8_t io::ui::property2::sval(wint_t da_val)
 {
-	if (!core::io.iz_k(da_value))
+	if (!core::io.iz_k(da_val))
 		return 3;
 	bool sacv = false;
-	if (da_value == value)
+	if (da_val == val)
 		sacv = true;
-	value = da_value;
+	val = da_val;
 	core::io.mkwin();
 	return sacv ? -1 : 0;
 }
 
 void io::ui::property2::reset()
 {
-	value = da_default;
+	val = da_default;
+}
+
+io::ui::property3::property3(std::wstring name, int min, int max, int ddd)
+{
+	if ( \
+		core::io.ui.existz(L"int_" + name) || \
+		ddd < min || \
+		ddd > max \
+		) {
+		delete this;
+		return;
+	}
+	range[0] = min;
+	range[1] = max;
+	da_default = ddd;
+	val = da_default;
+	core::io.ui.propertiez3[L"int_" + name] = this;
+}
+
+uint8_t io::ui::set(std::wstring name, int da_val)
+{
+	if (propertiez3.find(name) == propertiez3.end())
+		return 1;
+	return propertiez3[name]->sval(da_val);
+}
+
+uint8_t io::ui::property3::sval(int da_val)
+{
+	if (da_val < range[0] || da_val > range[1])
+		return 3;
+	bool sacv = false;
+	if (da_val == val)
+		sacv = true;
+	val = da_val;
+	core::io.mkwin();
+	return sacv ? -1 : 0;
+}
+
+void io::ui::property3::reset()
+{
+	val = da_default;
+	core::io.mkwin();
+}
+
+int io::ui::property3::gval()
+{
+	return val;
+}
+
+std::wstring io::ui::property3::grange()
+{
+	return std::to_wstring(range[0]) + L" - " + std::to_wstring(range[1]);
+}
+
+io::ui::property4::property4(std::wstring name, std::wstring ddd)
+{
+	if (core::io.ui.existz(L"bool_ " + name) || (ddd != L"TRU" && ddd != L"FALZ")) {
+		delete this;
+		return;
+	}
+	if (ddd == L"TRU")
+		da_default = true;
+	else
+		da_default = false;
+	val = da_default;
+	core::io.ui.propertiez4[L"bool_" + name] = this;
+}
+
+bool io::ui::property4::gval()
+{
+	return val;
+}
+
+uint8_t io::ui::property4::sval(std::wstring da_val)
+{
+	bool tmp;
+	if (da_val == L"TRU")
+		tmp = true;
+	else if (da_val == L"FALZ")
+		tmp = false;
+	else
+		return 3;
+	bool sacv = false;
+	if (tmp == val)
+		sacv = true;
+	val = tmp;
+	core::io.mkwin();
+	return sacv ? -1 : 0;
+}
+
+void io::ui::property4::reset()
+{
+	val = da_default;
+	core::io.mkwin();
 }
 
 bool io::ui::existz(std::wstring name)
@@ -353,6 +488,10 @@ bool io::ui::existz(std::wstring name)
 	if (propertiez1.find(name) != propertiez1.end())
 		return true;
 	if (propertiez2.find(name) != propertiez2.end())
+		return true;
+	if (propertiez3.find(name) != propertiez3.end())
+		return true;
+	if (propertiez4.find(name) != propertiez4.end())
 		return true;
 	return false;
 }
@@ -482,7 +621,7 @@ io::msg::msg(std::wstring da_from, std::wstring da_body)
 
 void io::msg::set(std::wstring da_from, std::wstring da_body)
 {
-	valid = false;
+	time_t tm = time(NULL);
 	if (da_from == L"hr") 
 	{
 		from = L"hr";
@@ -529,6 +668,8 @@ void io::msg::set(std::wstring da_from, std::wstring da_body)
 			break;
 		}
 	}
+	if (!w0.size())
+		w0 = body;
 	if (len == 0 || body.size() > 255)
 		return;
 
@@ -552,6 +693,16 @@ void io::msg::set(std::wstring da_from, std::wstring da_body)
 
 	if (core::serv.status.gactive() && core::serv.status.gnick() == from)
 		prop0 = L"u";
+	uint8_t tmp = localtime(&tm)->tm_hour;
+	recv.clear();
+	if (tmp < 10)
+		recv += L'0';
+	recv += std::to_wstring(tmp);
+	recv += L':';
+	tmp = localtime(&tm)->tm_min;
+	if (tmp < 10)
+		recv += L'0';
+	recv += std::to_wstring(tmp);
 
 	valid = true;
 }
@@ -562,7 +713,13 @@ void io::msg::operator=(msg da_msg)
 	this->body = da_msg.body;
 	this->prop0 = da_msg.prop0;
 	this->len = da_msg.len;
+	this->recv = da_msg.recv;
 	this->valid = da_msg.valid;
+}
+
+std::wstring io::msg::grecv()
+{
+	return recv;
 }
 
 std::wstring io::msg::gfrom()
@@ -607,6 +764,7 @@ void io::operator>>(std::wstring &trg)
 	else
 		i.use_normal = true;
 	wint_t ch;
+	i.hist.prepare();
 	i.buf.clear();
 	i.pos = 0;
 	bool max = (i.buf.size() > 255);
@@ -939,31 +1097,35 @@ void io::i::clpbrd::paste()
 	core::io.i.pos += buf.size();
 }
 
+void io::i::hist::prepare()
+{
+	if (da_hist.size() == 0)
+		da_hist.push_back(L"");
+	if ((int)da_hist.size() - 1 - core::io.ui.gint(L"int_input_scrollbucc") > 0)
+		da_hist.erase(da_hist.begin(), da_hist.end() - 1 - core::io.ui.gint(L"int_input_scrollbucc"));
+	pos = da_hist.size() - 1;
+}
+
 void io::i::hist::buftohist()
 {
 	if (core::io.trim(core::io.i.buf).size() == 0)
-		goto remk_win;
-	if (len < 32)
-		len++;
-	for (int i = len - 1; i > 1; i--)
-		body[i] = body[i - 1];
-
-	body[1] = core::io.i.buf;
-	body[0].clear();
-
-	remk_win:
-	pos = 0;
+		return;
+	if (da_hist.size())
+		da_hist[da_hist.size() - 1] = core::io.i.buf;
+	else
+		da_hist.push_back(core::io.i.buf);
+	da_hist.push_back(L"");
 }
 
 void io::i::hist::histtobuf(bool bacc)
 {
-	if (bacc && pos == 0 || !bacc && pos == len - 1)
+	if (bacc && pos == da_hist.size() - 1 || !bacc && pos == 0)
 		return;
-	if (pos == 0)
-		body[0] = core::io.i.buf;
+	if (pos == da_hist.size() - 1)
+		da_hist[da_hist.size() - 1] = core::io.i.buf;
 	
-	short int way = bacc ? -1 : 1;
-	core::io.i.buf = body[pos += way];
+	short int way = bacc ? 1 : -1;
+	core::io.i.buf = da_hist[pos += way];
 	core::io.i.pos = core::io.i.buf.size();
 	core::io.i.begin = 0;
 }
@@ -976,41 +1138,37 @@ void io::operator<<(msg da_msg)
 	getmaxyx(stdscr, max_y, max_x);
 	if (!da_msg.gvalid())
 		return;
-	if (o.len > 0) {
-		if (da_msg.gfrom() == L"hr" && o.msgz[0].gfrom() == L"hr") {
-			if (o.pos2 == -1) {
-				if (o.pos0 == -1)
-					o.pos0 = 0;
-				o.pos2 = 0;
+	if (o.msgz.size() > 0) {
+		if (da_msg.gfrom() == L"hr" && o.msgz[o.glen() - 1].gfrom() == L"hr") {
+			if (o.pos2 == o.glen()) {
+				if (o.pos0 == o.pos2)
+					o.pos0 = o.glen() - 1;
+				o.pos2 = o.glen() - 1;
 				mkwin();
 			}
 			return;
 		}
 	}
 	tmp_lcount = -o.pos1;
-	for (i = o.pos0; i >= 0 && tmp_lcount < max_y - 3 && i < o.len; i--)
+	for (i = o.pos0; i >= 0 && tmp_lcount < max_y - 3 && i < o.msgz.size(); i++)
 		tmp_lcount += o.glinez(i, max_x, max_y);
 	tmp_omit = tmp_lcount - max_y + 3;
-	if (o.len < 320)
-		o.len++;
-	for (int i = o.len - 1; i > 0; i--)
-		o.msgz[i] = o.msgz[i - 1];
-	o.msgz[0] = da_msg;
+
+	if (o.msgz.size() + 1 > core::io.ui.gint(L"int_output_scrollbucc"))
+		o.msgz.erase(o.msgz.begin(), o.msgz.end() + 1 - core::io.ui.gint(L"int_output_scrollbucc"));
+	
+	o.msgz.push_back(da_msg);
 	if (o.pos0 != -2 || o.pos1 != 0) {
-		if (o.pos0 + 1 < o.len)
-			o.pos0++;
-		else
+		if (o.msgz.size() > core::io.ui.gint(L"int_output_scrollbucc"))
 			o.pos1 = 0;
 	}
-	if (o.pos2 != o.len - 2)
-		o.pos2++;
 	o.new_msg = true;
 	
 	tmp_lcount = -o.pos1;
-	for (j = o.pos0; j >= 0 && j < o.len && tmp_lcount < max_y - 3; j--)
+	for (j = o.pos0; j >= 0 && j < o.msgz.size() && tmp_lcount < max_y - 3; j++)
 		tmp_lcount += o.glinez(j, max_x, max_y);
 	
-	 if ((tmp_omit < 0 || (tmp_omit == 0 && i == -1)) && tmp_lcount - max_y + 3 >= 0) {
+	 if ((tmp_omit < 0 || (tmp_omit == 0 && i == o.msgz.size() - 1)) && tmp_lcount - max_y + 3 >= 0) {
 		o.pos0 = -2;
 		o.pos1 = 0;
 	}
@@ -1019,20 +1177,18 @@ void io::operator<<(msg da_msg)
 
 void io::cls()
 {
-	o.pos0 = -1;
+	o.pos0 = o.glen();
 	o.pos1 = 0;
-	o.pos2 = -1;
+	o.pos2 = o.glen();
 	mkwin();
 }
 
 void io::da_erase()
 {
-	o.len = 0;
 	o.pos0 = -2;
 	o.pos1 = 0;
 	o.pos2 = 0;
-	for (int i = 0; i < 320; i++)
-		o.msgz[i] = core::io::msg();
+	o.msgz.clear();
 	if (!ascii) {
 		core::io << core::io::msg(L"kewl", L"┏━┓                 ┏━━┓");
 		core::io << core::io::msg(L"kewl", L"┃ ┃                 ┗┓ ┃");
@@ -1129,14 +1285,14 @@ void io::stfu::toggle()
 
 io::o::o()
 {
-	title = L"Konverzace Everybody Will Like [";
+	title = L"kewl [";
 	title += core::io.ver_echo(VERSION);
-	title += ']';
+	title += L"] - http://jirkavrba.net/kewl";
 }
 
 int io::o::glen()
 {
-	return len;
+	return msgz.size();
 }
 
 int io::o::gpos0()
@@ -1153,12 +1309,32 @@ int io::o::glinez(int id, int max_x, int max_y)
 {
 	if (msgz[id].gfrom() == L"hr")
 		return 1;
-	int l = 0, rest = msgz[id].gfrom().size() + msgz[id].glen() + core::io.ui.gstr(L"txt_usr_before").size() + core::io.ui.gstr(L"txt_usr_after").size() - 3;
-	while (rest > 0) {
-		rest -= max_x - 4;
-		l++;
+	uint8_t before = core::io.ui.gstr(L"txt_usr_before").size(), after = core::io.ui.gstr(L"txt_usr_after").size(), padding = core::io.ui.gint(L"int_usr_max_padding");
+	int l0 = 0, l1 = 0, rest = msgz[id].gfrom().size();
+	if (padding > rest)
+		rest = padding;
+	uint8_t show_time = 0;
+	if (core::io.ui.gtru(L"bool_show_time")) {
+		show_time = 5 + core::io.ui.gstr(L"txt_time_before").size() + core::io.ui.gstr(L"txt_time_after").size();
+		before += show_time;
 	}
-	return l;
+	rest += after;
+	while (rest > 0) {
+		rest -= max_x - 1 - before;
+		l0++;
+	}
+	l0--;
+	rest += max_x - (l0 ? 1 + before : 1);	
+	rest += msgz[id].glen();
+	padding += before + after;
+	if (l0)
+		rest += before;
+	rest -= padding;
+	while (rest > 0) {
+		rest -= max_x - padding - 1;
+		l1++;
+	}
+	return l0 + l1;
 }
 
 std::wstring io::o::gtitle()
@@ -1175,43 +1351,63 @@ void io::o::echo(int id, int max_x, int max_y, int omit0, int omit1)
 		core::io.ui.off();
 		return;
 	}
-	int tmp_pos, ltotal = glinez(id, max_x, max_y), lcount = 0, tmp_begin = 0, tmp_inc;
-	std::wstring tmp_from(core::io.ui.gstr(L"txt_usr_before"));
-	tmp_from += msgz[id].gfrom();
-	tmp_from += core::io.ui.gstr(L"txt_usr_after");
-	core::io.ui.on(L"attr_usr_" + msgz[id].gprop0());
-	
-	for (tmp_pos = 0;;) {
-		lcount++;
-		if (tmp_pos == 0)
-			tmp_inc = max_x - 1;
-		else
-			tmp_inc = max_x - 4;
+	int padding = core::io.ui.gint(L"int_usr_max_padding"), before = core::io.ui.gstr(L"txt_usr_before").size(), after = core::io.ui.gstr(L"txt_usr_after").size();
+	int tmp_pos = msgz[id].gfrom().size(), ltotal = glinez(id, max_x, max_y), lcount = 1, tmp_begin = 0, tmp_inc;
+	std::wstring tmp;
+	tmp = core::io.ui.gstr(L"txt_usr_before");
+	if (padding > tmp_pos)
+		tmp += std::wstring(padding - tmp_pos, 32);
+	tmp += msgz[id].gfrom();
+	tmp += core::io.ui.gstr(L"txt_usr_after");
+	uint8_t show_time = core::io.ui.gtru(L"bool_show_time");
+	if (lcount > omit0 && lcount <= ltotal - omit1)
+		printw("\n");
+	if (show_time) {
+		std::wstring todo = core::io.ui.gstr(L"txt_time_before") + msgz[id].grecv() + core::io.ui.gstr(L"txt_time_after");
+		before += todo.size();
+		show_time = todo.size();
 		if (lcount > omit0 && lcount <= ltotal - omit1) {
-			printw("\n");
-			if (tmp_pos != 0)
-				printw("   ");
-			addwstr(tmp_from.substr(tmp_pos, tmp_inc).c_str());
+			core::io.ui.on(L"attr_time");
+			addwstr(todo.c_str());
+			core::io.ui.off();
 		}
-		if (tmp_pos + tmp_inc > tmp_from.size()) {
-			tmp_begin = tmp_from.substr(tmp_pos, tmp_inc).size() + (tmp_pos == 0 ? 0 : 3);
+	}
+
+	core::io.ui.on(L"attr_usr_" + msgz[id].gprop0());
+	for (tmp_pos = 0;;) {
+		tmp_inc = max_x - (tmp_pos ? 1 + before : 1 + show_time);
+		if (lcount > omit0 && lcount <= ltotal - omit1) {
+			if (tmp_pos != 0) {
+				printw("\n");
+				if (before > 0)
+					addwstr(std::wstring(before, 32).c_str());
+			}
+			addwstr(tmp.substr(tmp_pos, tmp_inc).c_str());
+		}
+		if (tmp_pos + tmp_inc >= tmp.size()) {
+			tmp_begin = tmp.size() - tmp_pos + (tmp_pos == 0 ? show_time : before);
 			break;
 		}
 		tmp_pos += tmp_inc;
+		lcount++;
 	}
 	
 	core::io.ui.off();
 	core::io.ui.on(L"attr_body_" + msgz[id].gprop0());
-
+	padding += before + after;
 	tmp_pos = tmp_begin;
 	std::wstring buf;
 	for (int i = 0; i < msgz[id].gbody().size(); i++) {
-		if (tmp_pos == max_x - 1) {
+		if (tmp_pos >= max_x - 1) {
 			if (lcount > omit0 && lcount <= ltotal - omit1)
 				addwstr(buf.c_str());
 			lcount++;
-			buf = L"\n   ";
-			tmp_pos = 3;
+			buf = L"\n";
+			tmp_pos = 0;
+			if (padding > 0) {
+				buf += std::wstring(padding, 32);
+				tmp_pos += padding;
+			}
 		}
 		wint_t ch = msgz[id].gbody()[i];
 		switch (ch) {
@@ -1288,14 +1484,16 @@ void io::o::scrll(bool bacc)
 {
 	int max_x, max_y, ldiff, tmp_lcount = 0, i, way = (bacc ? -1 : 1);
 	getmaxyx(stdscr, max_y, max_x);
+	if (max_x <= core::io.ui.gint(L"int_usr_max_padding") + core::io.ui.gstr(L"txt_usr_before").size() + core::io.ui.gstr(L"txt_usr_after").size() + 1 + (core::io.ui.gtru(L"bool_show_time") ? 5 + core::io.ui.gstr(L"txt_time_before").size() + core::io.ui.gstr(L"txt_time_after").size() : 0) || max_y < 1)
+		return;
 	ldiff = (max_y - 3) / 4;
 	if (ldiff <= 0)
 		ldiff = 1;
 
 	if (pos0 == -2 && pos1 == 0) {
-		for (i = 0; i < glen() && tmp_lcount < max_y - 3; i++)
+		for (i = glen() - 1; i >= 0 && tmp_lcount < max_y - 3; i--)
 			tmp_lcount += glinez(i, max_x, max_y);
-		pos0 = i - 1;
+		pos0 = i + 1;
 		pos1 = tmp_lcount - max_y + 3;
 		if (pos1 < 0)
 			pos1 = 0;
@@ -1303,15 +1501,15 @@ void io::o::scrll(bool bacc)
 
 	if (way == 1) {
 		tmp_lcount = pos1;
-		for (i = pos0 + 1; i >= 0 && i < glen() && tmp_lcount < ldiff; i++)
+		for (i = pos0 - 1; i >= 0 && i < glen() && tmp_lcount < ldiff; i--)
 			tmp_lcount += glinez(i, max_x, max_y);
-		pos0 = i - 1;
+		pos0 = i + 1;
 		pos1 = tmp_lcount - ldiff;
 	} else {
 		if (pos0 == -1)
 			return;
 		tmp_lcount = 0;
-		for (i = pos0; i >=0 && i < glen(); i--) {
+		for (i = pos0; i >=0 && i < glen(); i++) {
 			tmp_lcount += glinez(i, max_x, max_y);
 			if (i == pos0)
 				tmp_lcount -= pos1;
@@ -1319,7 +1517,7 @@ void io::o::scrll(bool bacc)
 				break;
 		}
 		pos0 = i;
-		if (i >= 0)
+		if (i < glen())
 			pos1 = glinez(pos0, max_x, max_y) - tmp_lcount + ldiff;
 		else
 			pos1 = 0;
@@ -1336,17 +1534,19 @@ void io::o::jump(bool bacc)
 {
 	int max_x, max_y;
 	getmaxyx(stdscr, max_y, max_x);
+	if (max_x <= core::io.ui.gint(L"int_usr_max_padding") + core::io.ui.gstr(L"txt_usr_before").size() + core::io.ui.gstr(L"txt_usr_after").size() + 1 + (core::io.ui.gtru(L"bool_show_time") ? 5 + core::io.ui.gstr(L"txt_time_before").size() + core::io.ui.gstr(L"txt_time_after").size() : 0) || max_y < 1)
+		return;
 	if (bacc) {
 		int tmp_lcount = 0, i;
-		for (i = 0; i < len && tmp_lcount < max_y - 3; i++)
+		for (i = msgz.size() - 1; i >= 0 && tmp_lcount < max_y - 3; i--)
 			tmp_lcount += glinez(i, max_x, max_y);
-		if (i - 1 <= pos2)
+		if (i + 1 >= pos2)
 			pos0 = -2;
 		else
 			pos0 = pos2;
 		pos1 = 0;
 	} else {
-		pos0 = len - 1;
+		pos0 = 0;
 		pos1 = 0;
 	}
 	core::io.mkwin();
@@ -1363,13 +1563,15 @@ void io::o::scrll_resize()
 
 void io::o::scrll_chk(int max_x, int max_y)
 {
+	if (max_x <= core::io.ui.gint(L"int_usr_max_padding") + core::io.ui.gstr(L"txt_usr_before").size() + core::io.ui.gstr(L"txt_usr_after").size() + 1 + (core::io.ui.gtru(L"bool_show_time") ? 5 + core::io.ui.gstr(L"txt_time_before").size() + core::io.ui.gstr(L"txt_time_after").size() : 0) || max_y < 1)
+		return;
 	int i, tmp_lcount;
 	tmp_lcount = -pos1;
-	for (i = pos0; i >= 0 && tmp_lcount < max_y - 3; i--)
+	for (i = pos0; i < glen() && tmp_lcount < max_y - 3; i++)
 		tmp_lcount += glinez(i, max_x, max_y);
-	
-	if (tmp_lcount < max_y - 3 && pos0 <= pos2)
+	if (tmp_lcount < max_y - 3 && pos0 >= pos2) {
 		jump(true);
+	}
 }
 
 void io::mkwin()
@@ -1383,42 +1585,31 @@ void io::_mkwin()
 {
 	int max_x, max_y;
 	getmaxyx(stdscr, max_y, max_x);
-	if (max_x <= 4 || max_y < 1)
+	if (max_x <= core::io.ui.gint(L"int_usr_max_padding") + core::io.ui.gstr(L"txt_usr_before").size() + core::io.ui.gstr(L"txt_usr_after").size() + 1 + (core::io.ui.gtru(L"bool_show_time") ? 5 + core::io.ui.gstr(L"txt_time_before").size() + core::io.ui.gstr(L"txt_time_after").size() : 0) || max_y < 1)
 		return;
 	erase();
 	int tmp_lcount, j, begin, end, omit0, omit1;
 	if (o.gpos0() == -2 && o.gpos1() == 0) {
 		tmp_lcount = 0;
-		for (j = 0; j < o.glen() && tmp_lcount < max_y - 3; j++)
+		for (j = o.glen() - 1; j >= 0 && tmp_lcount < max_y - 3; j--)
 			tmp_lcount += o.glinez(j, max_x, max_y);
-		begin = j - 1;
-		end = 0;
+		begin = j + 1;
+		end = o.glen();
 		omit0 = tmp_lcount - max_y + 3;
 		if (omit0 < 0)
 			omit0 = 0;
 		omit1 = 0;
 	} else {
 		tmp_lcount = -o.gpos1();
-		for (j = o.gpos0(); j >= 0 && j < o.glen() && tmp_lcount < max_y - 3; j--)
+		for (j = o.gpos0(); j >= 0 && j < o.glen() && tmp_lcount < max_y - 3; j++)
 			tmp_lcount += o.glinez(j, max_x, max_y);
 		begin = o.gpos0();
-		end = j + 1;
+		end = j;
 		omit0 = o.gpos1();
 		omit1 = tmp_lcount - max_y + 3;
 	}
 
-	/*
-	std::ofstream test("test");
-	test << "begin " << begin << std::endl;
-	test << "  end " << end << std::endl;
-	test << "omit0 " << omit0 << std::endl;
-	test << "omit1 " << omit1 << std::endl;
-	test << " pos0 " << o.gpos0() << std::endl;
-	test << " pos1 " << o.gpos1() << std::endl;
-	*/
-
-
-	for (int j = begin; j >= end; j--) {
+	for (int j = begin; j < end; j++) {
 		int tmp_omit0 = 0, tmp_omit1 = 0;
 		if (j == begin)
 			tmp_omit0 = omit0;
@@ -1427,14 +1618,14 @@ void io::_mkwin()
 		o.echo(j, max_x, max_y, tmp_omit0, tmp_omit1);
 	}
 
-	core::io.ui.on(L"attr_frame_base");
+	core::io.ui.on(L"attr_header");
 	mvprintw(0, 0, "%*s", max_x, "");
 	mvaddwstr(0, 1, o.gtitle().substr(0, max_x - 1).c_str());
 	core::io.ui.off();
 	core::serv.status.draw(max_x, max_y);
 	core::io.ui.on(L"attr_new_tag");
-	if (!(end == 0 && omit1 <= 0) && o.new_msg)
-		mvaddwstr(max_y - 2, max_x - 5, std::wstring(L"_NEW_").substr(0, max_x).c_str());
+	if (!(end == o.glen() && omit1 <= 0) && o.new_msg)
+		mvaddwstr(max_y - 2, max_x - 5, std::wstring(L"*NEW*").substr(0, max_x).c_str());
 	else
 		o.new_msg = false;
 	core::io.ui.off();

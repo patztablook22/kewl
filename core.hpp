@@ -12,8 +12,10 @@ public:
 		void init();
 		void on(std::wstring), off();
 		std::wstring gstr(std::wstring), grange(std::wstring);
+		int gint(std::wstring);
+		bool gtru(std::wstring);
 		void echo(std::wstring, unsigned int);
-		uint8_t set(std::wstring, std::vector<std::wstring>), set(std::wstring, std::wstring), set (std::wstring, wint_t);
+		uint8_t set(std::wstring, std::vector<std::wstring>), set(std::wstring, std::wstring), set(std::wstring, wint_t), set(std::wstring, int);
 		uint8_t def_col(std::wstring, std::vector<unsigned int>);
 		uint8_t reset(std::wstring);
 		void reset();
@@ -24,32 +26,54 @@ public:
 		public:
 			property0(std::wstring, std::vector<std::wstring>);
 			void on(), off();
-			uint8_t svaluez(std::vector<std::wstring>);
+			uint8_t svalz(std::vector<std::wstring>);
 			void reset();
 		private:
-			unsigned int valuez[3], defaultz[3];
+			unsigned int valz[3], defaultz[3];
 			unsigned int id;
 		};
 
 		class property1 {
 		public:
 			property1(std::wstring, unsigned int, unsigned int, std::wstring);
-			std::wstring gstr(), grange();
-			uint8_t svalue(std::wstring);
+			std::wstring gval(), grange();
+			uint8_t sval(std::wstring);
 			void reset();
 		private:
 			unsigned int range[2];
-			std::wstring value, da_default;
+			std::wstring val, da_default;
 		};
 
 		class property2 {
 		public:
 			property2(std::wstring, wint_t);
 			void echo(unsigned int);
-			uint8_t svalue(wint_t);
+			uint8_t sval(wint_t);
 			void reset();
 		private:
-			wint_t value, da_default;
+			wint_t val, da_default;
+		};
+
+		class property3 {
+		public:
+			property3(std::wstring, int, int, int);
+			int gval();
+			std::wstring grange();
+			uint8_t sval(int);
+			void reset();
+		private:
+			int range[2];
+			int val, da_default;
+		};
+
+		class property4 {
+		public:
+			property4(std::wstring, std::wstring);
+			bool gval();
+			uint8_t sval(std::wstring);
+			void reset();
+		private:
+			bool val, da_default;
 		};
 
 	private:
@@ -58,6 +82,8 @@ public:
 		std::map<std::wstring, property0 *> propertiez0;
 		std::map<std::wstring, property1 *> propertiez1;
 		std::map<std::wstring, property2 *> propertiez2;
+		std::map<std::wstring, property3 *> propertiez3;
+		std::map<std::wstring, property4 *> propertiez4;
 		std::wstring active;
 	} ui;
 
@@ -65,7 +91,7 @@ public:
 	void sascii();
 	bool iz_k(wint_t);
 	bool iz_k(std::wstring);
-	bool iz_k(std::string); // check if itz allowed to use => only aZ, 09, аЯ, áŽ, ...
+	bool iz_k(std::string);
 	std::wstring sha256(std::wstring);
 	std::wstring trim(std::wstring);
 	std::wstring ver_echo(int);
@@ -77,12 +103,12 @@ public:
 		void set(std::wstring, std::wstring);
 		void operator=(msg);
 
-		std::wstring gfrom(), gbody();
+		std::wstring grecv(), gfrom(), gbody();
 		std::wstring gprop0();
 		uint8_t glen();
 		bool gvalid();
 	private:
-		std::wstring from, body;
+		std::wstring recv, from, body;
 		std::wstring prop0;
 		uint8_t len;
 		bool valid;
@@ -145,10 +171,11 @@ private:
 
 		class hist {
 		public:
+			void prepare();
 			void buftohist();
 			void histtobuf(bool);
 		private:
-			std::wstring body[32];
+			std::vector<std::wstring> da_hist;
 			int pos, len = 1;
 		} hist;
 	} i;
@@ -166,9 +193,9 @@ private:
 		void scrll_resize(), scrll_chk(int, int);
 		bool new_msg = false;
 	private:
-		msg msgz[320];
+		std::vector<msg> msgz;
 		std::wstring title;
-		int len, pos0, pos1, pos2;
+		int pos0, pos1, pos2;
 	} o;
 
 	short int default_contentz[8][3];
@@ -305,11 +332,22 @@ public:
 		void gotherz(std::vector<std::wstring> &);
 		bool gactive();
 		void join(std::wstring), leave(std::wstring);
+		void chomg(wchar_t, uint8_t);
 	private:
 		std::wstring nick, name, omg;
 		std::vector<std::wstring> otherz;
+		bool active;
 		unsigned int clientz;
 	} status;
+
+	class ignore {
+	public:
+		void glist(std::vector<std::wstring> &list);
+		bool ignored(std::wstring);
+		uint8_t add(std::wstring), remove(std::wstring), clear();
+	private:
+		std::vector<std::wstring> list;
+	} ignore;
 } serv;
 
 /*********************************************************************************************/
