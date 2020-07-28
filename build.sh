@@ -38,7 +38,7 @@ fi
 echo "checking libraries..."
 if [ ! -f $LIB/$SYS.hpp  ]; then
   echo unsupported libraries
-	exit $EXIT_FAILURE
+	exit 1
 fi
 
 if [ -e .tmp.hpp ]; then
@@ -94,3 +94,5 @@ g++ -std=c++11 \
     -include $LIB/$SYS.hpp \
     -include .tmp.hpp \
     -o $TRG
+
+exit $?
