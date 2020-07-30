@@ -9,7 +9,7 @@ class ascii: public core::cmdl::opt {
 
     void usr (std::wstring self)
     {
-      core::env.set(L"bool_unicode", std::wstring(L"FALZ"));
+      core::io.sascii();
       return;
     }
 

@@ -70,7 +70,7 @@ void env::init()
 	new NUM(L"usr_max_padding", 0, 15, 0);
 	new NUM(L"beep_ms_delay", 0, 65536, 100);
 
-	new TRU(L"unicode", L"TRU");
+	new TRU(L"unicode", core::io.gascii() ? L"FALZ" : L"TRU");
 	new TRU(L"show_time", L"TRU");
 	new TRU(L"do_popup", L"TRU");
 	new TRU(L"beep_beep", L"TRU");

@@ -39,6 +39,11 @@ void io::sascii()
 	ascii = true;
 }
 
+bool io::gascii()
+{
+  return ascii;
+}
+
 io::~io()
 {
 	for (int i = 0; i < 8; i++)

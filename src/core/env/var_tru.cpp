@@ -20,7 +20,6 @@ bool env::TRU::gval()
 uint8_t env::TRU::sval(std::wstring da_val)
 {
 	bool tmp;
-  std::wcout << da_val << std::endl;
 	if (da_val == L"TRU")
 		tmp = true;
 	else if (da_val == L"FALZ")
@@ -31,6 +30,7 @@ uint8_t env::TRU::sval(std::wstring da_val)
 	if (tmp == val)
 		sacv = true;
 	val = tmp;
+  std::wcout << val << std::endl;
 	return sacv ? -1 : 0;
 }
 

@@ -4,6 +4,7 @@ public:
 
 	void init(bool);
 	void sascii();
+  bool gascii();
 	bool iz_k(wint_t), iz_k(std::wstring), iz_k(std::string);
 	std::wstring sha256(std::wstring);
 	std::wstring trim(std::wstring);
