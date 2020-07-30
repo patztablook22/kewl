@@ -1,7 +1,7 @@
 io::io()
 :ascii(false), iz_ready(false)
 {
-	std::locale::global(std::locale("en_US.UTF-8"));
+  std::setlocale(LC_ALL, std::setlocale(LC_CTYPE, getenv("LANG")) );
 }
 
 void io::init(bool init_env = true)
