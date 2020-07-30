@@ -39,9 +39,9 @@ my_theme:
    # NOTE: **stfu after a command inhibits its output
    #       alternatively, use "erase" command when
    #       all of your init macros have been called
-   env define ultimate_color #123456
-   env set bool_show_time FALZ **stfu
-   env set attr_body_hl_3 ultimate_color term_default bold
+   env define ultimate_color #123456                         **stfu
+   env set bool_show_time FALZ                               **stfu
+   env set attr_body_hl_3 ultimate_color term_default bold   **stfu
 ```
 
 # Themed examples
