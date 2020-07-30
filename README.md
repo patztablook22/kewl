@@ -18,10 +18,33 @@ Kewl server [here](https://github.com/patztablook22/kewld).
 
 Kewl is available on the [AUR](https://aur.archlinux.org/packages/kewl). \
 You can use e.g. [AURA](https://github.com/patztablook22/aura) to install it!
+```md
+aura kewl
 
-# Themes
-Kewl provides macros to be configured with...
+kewl help
+```
 
+# Configuration
+```ruby
+# Kewl provides macros to be configured with...
+# content of $HOME/.config/kewl_macroz
+
+rc:
+   # this macro is being run every time
+   _my_theme
+   conn myserver:1234 mynick
+   
+my_theme:
+   # this is my wholesome theme
+   # NOTE: **stfu after a command inhibits its output
+   #       alternatively, use "erase" command when
+   #       all of your init macros have been called
+   env define ultimate_color #123456
+   env set bool_show_time FALZ **stfu
+   env set attr_body_hl_3 ultimate_color term_default bold
+```
+
+# Themed examples
 **v1.0.0:** _the modern kewl look_ \
 ![default](https://raw.githubusercontent.com/patztablook22/meta/master/kewl/100_1.png) \
 ![dark](https://raw.githubusercontent.com/patztablook22/meta/master/kewl/100_2.png)
