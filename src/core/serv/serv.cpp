@@ -49,7 +49,7 @@ void serv::conn(std::string hostname, uint16_t port, std::wstring usr)
 	if (port == 0)
 		port = 12204;
 	if (usr.size() == 0) {
-		std::string tmp(getlogin());
+		std::string tmp( getpwuid( getuid() )->pw_name );
 		usr = std::wstring(tmp.begin(), tmp.end());
 		core::io << L"found ur niccname (\\3" + usr + L"\\0)";
 	}
