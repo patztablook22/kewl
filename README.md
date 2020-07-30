@@ -25,7 +25,7 @@ kewl help
 ```
 
 # Configuration
-```ruby
+```md
 # Kewl provides macros to be configured with...
 # content of $HOME/.config/kewl_macroz
 
