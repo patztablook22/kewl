@@ -1,7 +1,14 @@
 # kewl
 
-Konverzace Everybody Will Like \
-a linux C++ IRC
+```
+   ┏━┓                 ┏━━┓                                          
+   ┃ ┃                 ┗┓ ┃             W   E   L   C   O   M   E                     
+   ┃ ┃┏━┓ ┏━━━┓ ┏━┳━┳━┓ ┃ ┃           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                          
+   ┃ ┗┛ ┃ ┃ ━ ┃ ┃ ┃ ┃ ┃ ┃ ┃                                      
+   ┃ ┏┓ ┃ ┃ ╺━┫ ┃ ╹ ╹ ┃ ┃ ┗┓           A super kewl chatroom-based                              
+   ┗━┛┗━┛ ┗━━━┛ ┗━━━━━┛ ┗━━┛          Linux C++ Internet Relay Chat                            
+ Konverzace Everybody Will Like                                      
+```
 
 # kewld
 
