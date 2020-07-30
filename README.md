@@ -20,4 +20,5 @@ Kewl provides macros to be configured with...
 ![dark](https://raw.githubusercontent.com/patztablook22/meta/master/kewl/100_2.png)
 
 **v0.8.8:** _the early kewl look_ \
-![default](https://raw.githubusercontent.com/patztablook22/meta/master/kewl/88.png) \
+![default](https://raw.githubusercontent.com/patztablook22/meta/master/kewl/88.png)
+
