@@ -1,4 +1,5 @@
-# Konverzace Everybody Will Like
+# kewl
+**Konverzace Everybody Will Like** \
 A super kewl chatroom-based \
 Linux C++ Internet Relay Chat
 
