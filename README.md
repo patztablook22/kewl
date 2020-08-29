@@ -1,14 +1,7 @@
 # kewl
+A super kewl chatroom-based \
+Linux C++ Internet Relay Chat
 
-```
-   ┏━┓                 ┏━━┓                                          
-   ┃ ┃                 ┗┓ ┃             W   E   L   C   O   M   E                     
-   ┃ ┃┏━┓ ┏━━━┓ ┏━┳━┳━┓ ┃ ┃           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                          
-   ┃ ┗┛ ┃ ┃ ━ ┃ ┃ ┃ ┃ ┃ ┃ ┃                                      
-   ┃ ┏┓ ┃ ┃ ╺━┫ ┃ ╹ ╹ ┃ ┃ ┗┓           A super kewl chatroom-based                              
-   ┗━┛┗━┛ ┗━━━┛ ┗━━━━━┛ ┗━━┛          Linux C++ Internet Relay Chat                            
- Konverzace Everybody Will Like                                      
-```
 
 # kewld
 
@@ -17,9 +10,9 @@ Kewl server [here](https://github.com/patztablook22/kewld).
 # Installation
 
 Kewl is available on the [AUR](https://aur.archlinux.org/packages/kewl). \
-You can use e.g. [AURA](https://github.com/patztablook22/aura) to install it!
+You can install it using [imp!](https://github.com/patztablook22/imp)
 ```md
-aura kewl
+imp kewl
 
 kewl help
 ```
